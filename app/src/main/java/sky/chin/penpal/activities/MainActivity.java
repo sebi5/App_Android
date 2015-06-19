@@ -1,7 +1,7 @@
 package sky.chin.penpal.activities;
 
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -9,7 +9,7 @@ import android.view.View.OnClickListener;
 import sky.chin.penpal.R;
 
 
-public class MainActivity extends ActionBarActivity implements OnClickListener {
+public class MainActivity extends SuperActivity implements OnClickListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,6 +18,18 @@ public class MainActivity extends ActionBarActivity implements OnClickListener {
 
         findViewById(R.id.btnLogin).setOnClickListener(this);
         findViewById(R.id.btnSignUp).setOnClickListener(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+        String userId = settings.getString(PREFS_USER_ID, "");
+        String userPassword = settings.getString(PREFS_USER_PASSWORD, "");
+
+        if (!"".equals(userId) && !"".equals(userPassword))
+            startActivity(new Intent(this, HomeActivity.class));
     }
 
     @Override

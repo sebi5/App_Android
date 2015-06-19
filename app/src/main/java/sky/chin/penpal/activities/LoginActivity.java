@@ -1,14 +1,12 @@
 package sky.chin.penpal.activities;
 
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -26,7 +24,7 @@ import sky.chin.penpal.R;
 import sky.chin.penpal.utils.VolleySingleton;
 
 
-public class LoginActivity extends ActionBarActivity {
+public class LoginActivity extends SuperActivity {
 
     private LinearLayout errorContainer;
     private TextView txtError;
@@ -71,11 +69,10 @@ public class LoginActivity extends ActionBarActivity {
 
                             @Override
                             public void onResponse(String response) {
-                                Log.d("Login", "Response: " + response.toString());
+                                Log.d("Login", "Response: " + response);
 
-                                JSONObject jsonResp = null;
                                 try {
-                                    jsonResp = new JSONObject(response.toString());
+                                    JSONObject jsonResp = new JSONObject(response);
                                     JSONArray dataArray = jsonResp.getJSONArray("data");
 
                                     JSONObject data;
@@ -83,7 +80,13 @@ public class LoginActivity extends ActionBarActivity {
                                         data = dataArray.getJSONObject(i);
                                         String code = data.getString("code");
                                         if ("0".equals(code)) {
-                                            Toast.makeText(LoginActivity.this, "Login Success", Toast.LENGTH_SHORT).show();
+                                            String userId = data.getString("user_id");
+                                            String userPassword = data.getString("password");
+                                            Log.d("Login", "Logged In user_id = " + userId +
+                                                            ", password = " + userPassword);
+                                            saveLoginProfile(userId, userPassword);
+
+                                            finish();
                                         } else {
                                             showErrorMessage(data.getString("message"));
                                         }
@@ -107,7 +110,7 @@ public class LoginActivity extends ActionBarActivity {
                         }) {
                     @Override
                     protected Map<String, String> getParams() {
-                        Map<String, String> params = new HashMap<String, String>();
+                        Map<String, String> params = new HashMap<>();
                         params.put("user", username);
                         params.put("password", password);
                         params.put("p_chk", "key");

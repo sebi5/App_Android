@@ -4,20 +4,15 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
-import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.v4.app.DialogFragment;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.app.DialogFragment;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.NumberPicker;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,7 +34,7 @@ import java.util.Map;
 import sky.chin.penpal.R;
 import sky.chin.penpal.utils.VolleySingleton;
 
-public class RegisterActivity extends ActionBarActivity {
+public class RegisterActivity extends SuperActivity {
 
     private Button regBirthDate, regGender, regCountry, regRegion, btnSignUp;
     private EditText regUsername, regName, regPassword, regEmail;
@@ -147,11 +142,10 @@ public class RegisterActivity extends ActionBarActivity {
 
                             @Override
                             public void onResponse(String response) {
-                                Log.d("Login", "Response: " + response.toString());
+                                Log.d("Login", "Response: " + response);
 
-                                JSONObject jsonResp = null;
                                 try {
-                                    jsonResp = new JSONObject(response.toString());
+                                    JSONObject jsonResp = new JSONObject(response);
                                     JSONArray dataArray = jsonResp.getJSONArray("data");
 
                                     JSONObject data;
@@ -257,11 +251,10 @@ public class RegisterActivity extends ActionBarActivity {
 
                             @Override
                             public void onResponse(String response) {
-                                Log.d("Login", "Response: " + response.toString());
+                                Log.d("Login", "Response: " + response);
 
-                                JSONObject jsonResp = null;
                                 try {
-                                    jsonResp = new JSONObject(response.toString());
+                                    JSONObject jsonResp = new JSONObject(response);
                                     JSONArray dataArray = jsonResp.getJSONArray("data");
 
                                     JSONObject data;
@@ -269,7 +262,12 @@ public class RegisterActivity extends ActionBarActivity {
                                         data = dataArray.getJSONObject(i);
                                         String code = data.getString("code");
                                         if ("0".equals(code)) {
-                                            Toast.makeText(RegisterActivity.this, "Sign Up Success", Toast.LENGTH_SHORT).show();
+                                            String userId = data.getString("user_id");
+                                            String userPassword = data.getString("password");
+                                            Log.d("Login", "Registered user_id = " + userId +
+                                                    ", password = " + userPassword);
+                                            saveLoginProfile(userId, userPassword);
+                                            finish();
                                         } else {
                                             showErrorMessage(data.getString("message"));
                                         }
@@ -293,7 +291,7 @@ public class RegisterActivity extends ActionBarActivity {
                         }) {
                     @Override
                     protected Map<String, String> getParams() {
-                        Map<String, String> params = new HashMap<String, String>();
+                        Map<String, String> params = new HashMap<>();
                         params.put("username", username);
                         params.put("fullname", name);
                         params.put("password", password);
@@ -305,13 +303,6 @@ public class RegisterActivity extends ActionBarActivity {
                         params.put("p_chk", "key");
                         params.put("device", "2");
 
-                        return params;
-                    }
-
-                    @Override
-                    public Map<String, String> getHeaders() throws AuthFailureError {
-                        Map<String, String> params = new HashMap<String, String>();
-//                            params.put("Content-Type","application/x-www-form-urlencoded");
                         return params;
                     }
                 };
