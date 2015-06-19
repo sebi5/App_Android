@@ -9,7 +9,7 @@ public class SuperActivity extends AppCompatActivity {
 
     public static final String PREFS_NAME = "InterLocalPrefs";
     public static final String PREFS_USER_ID = "userId";
-    public static final String PREFS_USER_PASSWORD = " userPassword";
+    public static final String PREFS_USER_PASSWORD = "userPassword";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,7 +17,6 @@ public class SuperActivity extends AppCompatActivity {
     }
 
     protected void saveLoginProfile(String userId, String userPassword) {
-        // Save settings
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.putString(PREFS_USER_ID, userId);
@@ -30,7 +29,6 @@ public class SuperActivity extends AppCompatActivity {
     }
 
     protected void clearLoginProfile() {
-        // Save settings
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.remove(PREFS_USER_ID);
