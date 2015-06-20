@@ -1,12 +1,11 @@
 package sky.chin.penpal.activities;
 
 import android.os.Bundle;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.ActionBar;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,11 +17,10 @@ import android.widget.TextView;
 import sky.chin.penpal.R;
 
 public class HomeActivity extends SuperActivity {
-    // When requested, this adapter returns a DemoObjectFragment,
-    // representing an object in the collection.
-    DemoCollectionPagerAdapter mDemoCollectionPagerAdapter;
-    ViewPager mViewPager;
-    String[] tabTitles;
+
+    private DemoCollectionPagerAdapter mDemoCollectionPagerAdapter;
+    private ViewPager mViewPager;
+    private String[] tabTitles;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,54 +35,32 @@ public class HomeActivity extends SuperActivity {
 
         };
 
-        // ViewPager and its adapters use support library
-        // fragments, so use getSupportFragmentManager.
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
+
         mDemoCollectionPagerAdapter =
                 new DemoCollectionPagerAdapter(
                         getSupportFragmentManager());
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mDemoCollectionPagerAdapter);
-
-        mViewPager.setOnPageChangeListener(
-                new ViewPager.SimpleOnPageChangeListener() {
-                    @Override
-                    public void onPageSelected(int position) {
-                        // When swiping between pages, select the
-                        // corresponding tab.
-                        getSupportActionBar().setSelectedNavigationItem(position);
-                        getSupportActionBar().setTitle(tabTitles[position]);
-                    }
-                });
-
-        // Specify that tabs should be displayed in the action bar.
-        getSupportActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-
-        // Create a tab listener that is called when the user changes tabs.
-        ActionBar.TabListener tabListener = new ActionBar.TabListener() {
-            public void onTabSelected(ActionBar.Tab tab, FragmentTransaction ft) {
-                // When the tab is selected, switch to the
-                // corresponding page in the ViewPager.
-                mViewPager.setCurrentItem(tab.getPosition());
+        mViewPager.addOnPageChangeListener(new TabLayout.TabLayoutOnPageChangeListener(tabLayout));
+        mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                getSupportActionBar().setTitle(mDemoCollectionPagerAdapter.getPageTitle(position));
             }
 
-            public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction ft) {
-                // hide the given tab
+            @Override
+            public void onPageSelected(int position) {
+
             }
 
-            public void onTabReselected(ActionBar.Tab tab, FragmentTransaction ft) {
-                // probably ignore this event
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
             }
-        };
+        });
 
-        for (int i = 0; i < tabTitles.length; i++) {
-            if (i == 0)
-                getSupportActionBar().setTitle(tabTitles[i]);
-
-            getSupportActionBar().addTab(
-                    getSupportActionBar().newTab()
-                            .setText(tabTitles[i])
-                            .setTabListener(tabListener));
-        }
+        tabLayout.setupWithViewPager(mViewPager);
     }
 
     @Override
@@ -123,17 +99,15 @@ public class HomeActivity extends SuperActivity {
 
         @Override
         public int getCount() {
-            return 100;
+            return 4;
         }
 
         @Override
         public CharSequence getPageTitle(int position) {
-            return "OBJECT " + (position + 1);
+            return tabTitles[position];
         }
     }
 
-    // Instances of this class are fragments representing a single
-// object in our collection.
     public static class DemoObjectFragment extends Fragment {
         public static final String ARG_OBJECT = "object";
 

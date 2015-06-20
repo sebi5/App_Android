@@ -189,24 +189,28 @@ public class RegisterActivity extends SuperActivity {
                 final String username = regUsername.getText().toString();
                 if ("".equals(username)) {
                     regUsername.setError(getResources().getString(R.string.error_username_required));
+                    scrollToView(regUsername);
                     return;
                 }
 
                 final String name = regName.getText().toString();
                 if ("".equals(name)) {
                     regName.setError(getResources().getString(R.string.error_register_name_required));
+                    scrollToView(regName);
                     return;
                 }
 
                 final String password = regPassword.getText().toString();
                 if ("".equals(password)) {
                     regPassword.setError(getResources().getString(R.string.error_password_required));
+                    scrollToView(regPassword);
                     return;
                 }
 
                 final String email = regEmail.getText().toString();
                 if ("".equals(email)) {
                     regEmail.setError(getResources().getString(R.string.error_register_email_required));
+                    scrollToView(regEmail);
                     return;
                 }
 
@@ -214,6 +218,7 @@ public class RegisterActivity extends SuperActivity {
                 if ("Select Birth Date".equals(birthDate)) {
                     regBirthDate.setError(getResources().getString(R.string.error_register_birth_date_required));
                     showToast(getResources().getString(R.string.error_register_birth_date_required));
+                    scrollToView(regBirthDate);
                     return;
                 }
 
@@ -326,10 +331,14 @@ public class RegisterActivity extends SuperActivity {
         errorContainer.setVisibility(View.VISIBLE);
 
         // Scroll to errors
+        scrollToView(errorContainer);
+    }
+
+    private void scrollToView(final View view) {
         new Handler().post(new Runnable() {
             @Override
             public void run() {
-                scrollView.scrollTo(0, errorContainer.getTop());
+                scrollView.scrollTo(0, view.getTop());
             }
         });
     }
