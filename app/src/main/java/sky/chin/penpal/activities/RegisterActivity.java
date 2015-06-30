@@ -17,7 +17,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -32,6 +31,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import sky.chin.penpal.R;
+import sky.chin.penpal.configs.Url;
+import sky.chin.penpal.utils.AuthManager;
 import sky.chin.penpal.utils.VolleySingleton;
 
 public class RegisterActivity extends SuperActivity {
@@ -130,7 +131,7 @@ public class RegisterActivity extends SuperActivity {
                     return;
                 }
 
-                String url = "http://45.55.157.207/python/Locations/regions.py?country=" + regCountry.getTag();
+                String url = Url.REGIONS + "?country=" + regCountry.getTag();
 
                 Log.d("Register", "Fetch Region Url: " + url);
 
@@ -244,15 +245,12 @@ public class RegisterActivity extends SuperActivity {
 
                 final int region = (int) regRegion.getTag();
 
-                String url = "http://45.55.157.207/python/signup.py";
-
-
                 hideErrorMessage();
                 btnSignUp.setText(getResources().getString(R.string.signing_up));
                 btnSignUp.setEnabled(false);
 
                 StringRequest jsObjRequest = new StringRequest
-                        (Request.Method.POST, url, new Response.Listener<String>() {
+                        (Request.Method.POST, Url.SIGNUP, new Response.Listener<String>() {
 
                             @Override
                             public void onResponse(String response) {
@@ -271,7 +269,8 @@ public class RegisterActivity extends SuperActivity {
                                             String userPassword = data.getString("password");
                                             Log.d("Login", "Registered user_id = " + userId +
                                                     ", password = " + userPassword);
-                                            saveLoginProfile(userId, userPassword);
+                                            AuthManager.getInstance(RegisterActivity.this)
+                                                    .setLogin(userId, userPassword);
                                             finish();
                                         } else {
                                             showErrorMessage(data.getString("message"));

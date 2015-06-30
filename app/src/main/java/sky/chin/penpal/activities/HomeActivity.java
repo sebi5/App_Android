@@ -1,5 +1,6 @@
 package sky.chin.penpal.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
@@ -15,8 +16,10 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import sky.chin.penpal.R;
+import sky.chin.penpal.fragments.MessageTabFragment;
+import sky.chin.penpal.utils.AuthManager;
 
-public class HomeActivity extends SuperActivity {
+public class HomeActivity extends SuperActivity implements MessageTabFragment.OnChatSelectedListener {
 
     private DemoCollectionPagerAdapter mDemoCollectionPagerAdapter;
     private ViewPager mViewPager;
@@ -74,12 +77,19 @@ public class HomeActivity extends SuperActivity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_logout:
-                clearLoginProfile();
+                AuthManager.getInstance(this).removeLogin();
                 finish();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onChatSelected(String id) {
+        Intent message = new Intent(this, MessageActivity.class);
+        message.putExtra("id", id);
+        startActivity(message);
     }
 
     public class DemoCollectionPagerAdapter extends FragmentStatePagerAdapter {
@@ -89,11 +99,21 @@ public class HomeActivity extends SuperActivity {
 
         @Override
         public Fragment getItem(int i) {
-            Fragment fragment = new DemoObjectFragment();
-            Bundle args = new Bundle();
-            // Our object is just an integer :-P
-            args.putInt(DemoObjectFragment.ARG_OBJECT, i + 1);
-            fragment.setArguments(args);
+            Fragment fragment;
+
+            switch (i) {
+                case 1:
+                    fragment = MessageTabFragment.newInstance();
+                    break;
+
+                default:
+                    fragment = new DemoObjectFragment();
+                    Bundle args = new Bundle();
+                    // Our object is just an integer :-P
+                    args.putInt(DemoObjectFragment.ARG_OBJECT, i + 1);
+                    fragment.setArguments(args);
+            }
+
             return fragment;
         }
 

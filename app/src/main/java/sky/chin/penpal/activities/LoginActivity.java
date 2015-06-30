@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import sky.chin.penpal.R;
+import sky.chin.penpal.configs.Url;
+import sky.chin.penpal.utils.AuthManager;
 import sky.chin.penpal.utils.VolleySingleton;
 
 
@@ -58,14 +60,12 @@ public class LoginActivity extends SuperActivity {
                     return;
                 }
 
-                String url = "http://45.55.157.207/python/login.py";
-
                 hideErrorMessage();
                 btnLogin.setText(getResources().getString(R.string.logging_in));
                 btnLogin.setEnabled(false);
 
                 StringRequest jsObjRequest = new StringRequest
-                        (Request.Method.POST, url, new Response.Listener<String>() {
+                        (Request.Method.POST, Url.LOGIN, new Response.Listener<String>() {
 
                             @Override
                             public void onResponse(String response) {
@@ -84,7 +84,9 @@ public class LoginActivity extends SuperActivity {
                                             String userPassword = data.getString("password");
                                             Log.d("Login", "Logged In user_id = " + userId +
                                                             ", password = " + userPassword);
-                                            saveLoginProfile(userId, userPassword);
+
+                                            AuthManager.getInstance(LoginActivity.this)
+                                                    .setLogin(userId, userPassword);
 
                                             finish();
                                         } else {
