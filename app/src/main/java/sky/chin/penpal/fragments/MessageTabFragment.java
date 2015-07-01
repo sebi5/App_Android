@@ -31,7 +31,7 @@ import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Chat;
 import sky.chin.penpal.utils.AuthManager;
-import sky.chin.penpal.utils.VolleySingleton;
+import sky.chin.penpal.server.Server;
 
 public class MessageTabFragment extends Fragment implements OnRecyclerViewItemClickListener {
 
@@ -154,7 +154,7 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
             }
         };
 
-        VolleySingleton.getInstance(getActivity()).addToRequestQueue(jsObjRequest);
+        Server.getInstance(getActivity()).addToRequestQueue(jsObjRequest);
     }
 
     @Override

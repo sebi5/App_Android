@@ -33,7 +33,7 @@ import java.util.Map;
 import sky.chin.penpal.R;
 import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.utils.AuthManager;
-import sky.chin.penpal.utils.VolleySingleton;
+import sky.chin.penpal.server.Server;
 
 public class RegisterActivity extends SuperActivity {
 
@@ -178,7 +178,7 @@ public class RegisterActivity extends SuperActivity {
                                 regRegion.setEnabled(true);
                             }
                         });
-                VolleySingleton.getInstance(RegisterActivity.this).addToRequestQueue(jsObjRequest);
+                Server.getInstance(RegisterActivity.this).addToRequestQueue(jsObjRequest);
             }
         });
 
@@ -311,7 +311,7 @@ public class RegisterActivity extends SuperActivity {
                     }
                 };
 
-                VolleySingleton.getInstance(RegisterActivity.this).addToRequestQueue(jsObjRequest);
+                Server.getInstance(RegisterActivity.this).addToRequestQueue(jsObjRequest);
             }
         });
     }

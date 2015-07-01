@@ -25,7 +25,7 @@ import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Message;
 import sky.chin.penpal.utils.AuthManager;
-import sky.chin.penpal.utils.VolleySingleton;
+import sky.chin.penpal.server.Server;
 
 public class MessageActivity extends SuperActivity implements OnRecyclerViewItemClickListener {
 
@@ -137,7 +137,7 @@ public class MessageActivity extends SuperActivity implements OnRecyclerViewItem
             }
         };
 
-        VolleySingleton.getInstance(this).addToRequestQueue(jsObjRequest);
+        Server.getInstance(this).addToRequestQueue(jsObjRequest);
     }
 
     @Override

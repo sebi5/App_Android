@@ -15,7 +15,7 @@ import sky.chin.penpal.R;
 import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Chat;
-import sky.chin.penpal.utils.VolleySingleton;
+import sky.chin.penpal.server.Server;
 
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     private ArrayList<Chat> mDataset;
@@ -58,7 +58,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
 
         if (c.hasProfilePhoto())
             holder.mProfilePhotos.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getProfilePhoto(),
-                    VolleySingleton.getInstance(mContext).getImageLoader());
+                    Server.getInstance(mContext).getImageLoader());
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
