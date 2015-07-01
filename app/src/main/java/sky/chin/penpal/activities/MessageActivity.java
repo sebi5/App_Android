@@ -4,30 +4,24 @@ import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
-
-import com.android.volley.Request;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import sky.chin.penpal.R;
 import sky.chin.penpal.adapters.MessageAdapter;
-import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Message;
-import sky.chin.penpal.utils.AuthManager;
 import sky.chin.penpal.server.Server;
+import sky.chin.penpal.server.interfaces.ServerResponseListener;
+import sky.chin.penpal.server.requests.GetMessagesRequest;
+import sky.chin.penpal.utils.AuthManager;
 
-public class MessageActivity extends SuperActivity implements OnRecyclerViewItemClickListener {
+public class MessageActivity extends SuperActivity implements OnRecyclerViewItemClickListener,
+        ServerResponseListener{
 
     private static final String LOG = MessageActivity.class.getSimpleName();
 
@@ -69,75 +63,47 @@ public class MessageActivity extends SuperActivity implements OnRecyclerViewItem
         findMessages(id);
     }
 
-    private void findMessages(final String id) {
+    private void findMessages(String id) {
         mSwipeRefreshLayout.setRefreshing(true);
 
-        StringRequest jsObjRequest = new StringRequest
-                (Request.Method.POST, Url.MESSAGES, new Response.Listener<String>() {
+        AuthManager authManager = AuthManager.getInstance(this);
 
-                    @Override
-                    public void onResponse(String response) {
-                        Log.d(LOG, "Response: " + response);
+        Server.getInstance(this).sendRequest(
+                new GetMessagesRequest.Builder()
+                        .id(id)
+                        .userId(authManager.getUserId())
+                        .userPassword(authManager.getUserPassword())
+                        .build(), this);
+    }
 
-                        try {
-                            JSONObject jsonResp = new JSONObject(response);
-                            JSONArray dataArray = jsonResp.getJSONArray("data");
+    @Override
+    public void onSuccess(JSONObject data) {
+        try {
+            JSONArray messages = data.getJSONArray("messages")
+                    .getJSONArray(0);
 
-                            JSONObject data;
-                            for (int i = 0; i < dataArray.length(); i++) {
-                                data = dataArray.getJSONObject(i);
-                                String code = data.getString("code");
-                                if ("0".equals(code)) {
-                                    JSONArray messages = data.getJSONArray("messages")
-                                            .getJSONArray(0);
+            // Clear old records
+            mMessages.clear();
 
-                                    // Clear old records
-                                    mMessages.clear();
-
-                                    for (int k = 0; k < messages.length(); k++) {
-                                        JSONArray item = messages.getJSONArray(k);
-                                        mMessages.add(new Message(item.getString(1),
-                                                item.getString(0),
-                                                item.getString(2)));
-                                    }
-
-                                    mAdapter.notifyDataSetChanged();
-                                } else {
-                                    // TODO show error message
-                                }
-                            }
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        } finally {
-                            mSwipeRefreshLayout.setRefreshing(false);
-                        }
-                    }
-                }, new Response.ErrorListener() {
-
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.d(LOG, "Error: " + error.getMessage());
-                        // TODO show error message
-                        mSwipeRefreshLayout.setRefreshing(false);
-                    }
-                }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-                params.put("id", id);
-
-                AuthManager authManager = AuthManager.getInstance(MessageActivity.this);
-
-                params.put("u_id", authManager.getUserId());
-                params.put("u_pass", authManager.getUserPassword());
-                params.put("p_chk", "key");
-
-                return params;
+            for (int k = 0; k < messages.length(); k++) {
+                JSONArray item = messages.getJSONArray(k);
+                mMessages.add(new Message(item.getString(1),
+                        item.getString(0),
+                        item.getString(2)));
             }
-        };
 
-        Server.getInstance(this).addToRequestQueue(jsObjRequest);
+            mAdapter.notifyDataSetChanged();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } finally {
+            mSwipeRefreshLayout.setRefreshing(false);
+        }
+    }
+
+    @Override
+    public void onError(String content) {
+        // TODO show error message
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     @Override

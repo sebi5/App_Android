@@ -27,15 +27,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 
 import sky.chin.penpal.R;
 import sky.chin.penpal.configs.Url;
-import sky.chin.penpal.utils.AuthManager;
 import sky.chin.penpal.server.Server;
+import sky.chin.penpal.server.interfaces.ServerResponseListener;
+import sky.chin.penpal.server.requests.RegisterRequest;
+import sky.chin.penpal.utils.AuthManager;
 
-public class RegisterActivity extends SuperActivity {
+public class RegisterActivity extends SuperActivity implements ServerResponseListener {
 
     private Button regBirthDate, regGender, regCountry, regRegion, btnSignUp;
     private EditText regUsername, regName, regPassword, regEmail;
@@ -249,69 +249,17 @@ public class RegisterActivity extends SuperActivity {
                 btnSignUp.setText(getResources().getString(R.string.signing_up));
                 btnSignUp.setEnabled(false);
 
-                StringRequest jsObjRequest = new StringRequest
-                        (Request.Method.POST, Url.SIGNUP, new Response.Listener<String>() {
-
-                            @Override
-                            public void onResponse(String response) {
-                                Log.d("Login", "Response: " + response);
-
-                                try {
-                                    JSONObject jsonResp = new JSONObject(response);
-                                    JSONArray dataArray = jsonResp.getJSONArray("data");
-
-                                    JSONObject data;
-                                    for (int i = 0; i < dataArray.length(); i++) {
-                                        data = dataArray.getJSONObject(i);
-                                        String code = data.getString("code");
-                                        if ("0".equals(code)) {
-                                            String userId = data.getString("user_id");
-                                            String userPassword = data.getString("password");
-                                            Log.d("Login", "Registered user_id = " + userId +
-                                                    ", password = " + userPassword);
-                                            AuthManager.getInstance(RegisterActivity.this)
-                                                    .setLogin(userId, userPassword);
-                                            finish();
-                                        } else {
-                                            showErrorMessage(data.getString("message"));
-                                        }
-                                    }
-
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-
-                                btnSignUp.setText(getResources().getString(R.string.sign_up));
-                                btnSignUp.setEnabled(true);
-                            }
-                        }, new Response.ErrorListener() {
-
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-                                Log.d("Login", "Error: " + error.getMessage());
-                                btnSignUp.setText(getResources().getString(R.string.sign_up));
-                                btnSignUp.setEnabled(true);
-                            }
-                        }) {
-                    @Override
-                    protected Map<String, String> getParams() {
-                        Map<String, String> params = new HashMap<>();
-                        params.put("username", username);
-                        params.put("fullname", name);
-                        params.put("password", password);
-                        params.put("user_email", email);
-                        params.put("gender", (gender.equals("Male") ? "0" : "1"));
-                        params.put("birthdate", birthDate);
-                        params.put("country", country);
-                        params.put("region", region+"");
-                        params.put("p_chk", "key");
-                        params.put("device", "2");
-
-                        return params;
-                    }
-                };
-
-                Server.getInstance(RegisterActivity.this).addToRequestQueue(jsObjRequest);
+                Server.getInstance(RegisterActivity.this).sendRequest(
+                        new RegisterRequest.Builder()
+                                .username(username)
+                                .fullName(name)
+                                .password(password)
+                                .email(email)
+                                .gender((gender.equals("Male") ? "0" : "1"))
+                                .birthDate(birthDate)
+                                .country(country)
+                                .region(region + "")
+                                .build(), RegisterActivity.this);
             }
         });
     }
@@ -340,6 +288,29 @@ public class RegisterActivity extends SuperActivity {
                 scrollView.scrollTo(0, view.getTop());
             }
         });
+    }
+
+    @Override
+    public void onSuccess(JSONObject data) {
+        try {
+            String userId = data.getString("user_id");
+            String userPassword = data.getString("password");
+
+            AuthManager.getInstance(RegisterActivity.this).setLogin(userId, userPassword);
+            finish();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        btnSignUp.setText(getResources().getString(R.string.sign_up));
+        btnSignUp.setEnabled(true);
+    }
+
+    @Override
+    public void onError(String content) {
+        showErrorMessage(content);
+        btnSignUp.setText(getResources().getString(R.string.sign_up));
+        btnSignUp.setEnabled(true);
     }
 
     public static class DatePickerFragment extends DialogFragment

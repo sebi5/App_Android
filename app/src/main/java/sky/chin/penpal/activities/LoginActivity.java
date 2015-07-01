@@ -14,10 +14,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import sky.chin.penpal.R;
+import sky.chin.penpal.server.Server;
 import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.LoginRequest;
 import sky.chin.penpal.utils.AuthManager;
-import sky.chin.penpal.server.Server;
 
 
 public class LoginActivity extends SuperActivity implements ServerResponseListener {

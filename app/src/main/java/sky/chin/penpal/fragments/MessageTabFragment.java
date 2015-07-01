@@ -6,34 +6,32 @@ import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-
-import com.android.volley.Request;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import sky.chin.penpal.R;
 import sky.chin.penpal.adapters.ChatAdapter;
-import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Chat;
-import sky.chin.penpal.utils.AuthManager;
 import sky.chin.penpal.server.Server;
+import sky.chin.penpal.server.interfaces.ServerResponseListener;
+import sky.chin.penpal.server.requests.AllMessagesRequest;
+import sky.chin.penpal.utils.AuthManager;
 
-public class MessageTabFragment extends Fragment implements OnRecyclerViewItemClickListener {
+public class MessageTabFragment extends Fragment implements OnRecyclerViewItemClickListener,
+        ServerResponseListener{
+
+    public interface OnChatSelectedListener {
+        void onChatSelected(String id);
+    }
 
     private static final String LOG = MessageTabFragment.class.getSimpleName();
 
@@ -89,72 +87,44 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
     private void findChats() {
         mSwipeRefreshLayout.setRefreshing(true);
 
-        StringRequest jsObjRequest = new StringRequest
-                (Request.Method.POST, Url.MESSAGES_ALL, new Response.Listener<String>() {
+        AuthManager authManager = AuthManager.getInstance(getActivity());
 
-                    @Override
-                    public void onResponse(String response) {
-                        Log.d(LOG, "Response: " + response);
+        Server.getInstance(getActivity()).sendRequest(
+                new AllMessagesRequest.Builder()
+                        .userId(authManager.getUserId())
+                        .userPassword(authManager.getUserPassword())
+                        .build(), this);
+    }
 
-                        try {
-                            JSONObject jsonResp = new JSONObject(response);
-                            JSONArray dataArray = jsonResp.getJSONArray("data");
+    @Override
+    public void onSuccess(JSONObject data) {
+        try {
+            JSONArray message = data.getJSONArray("message")
+                    .getJSONArray(0);
 
-                            JSONObject data;
-                            for (int i = 0; i < dataArray.length(); i++) {
-                                data = dataArray.getJSONObject(i);
-                                String code = data.getString("code");
-                                if ("0".equals(code)) {
-                                    JSONArray message = data.getJSONArray("message")
-                                            .getJSONArray(0);
+            // Clear old records
+            mChats.clear();
 
-                                    // Clear old records
-                                    mChats.clear();
-
-                                    for (int k = 0; k < message.length(); k++) {
-                                        JSONArray item = message.getJSONArray(k);
-                                        mChats.add(new Chat(item.getString(1),
-                                                item.getString(0),
-                                                item.getString(2),
-                                                item.getString(4)));
-                                    }
-
-                                    mAdapter.notifyDataSetChanged();
-                                } else {
-                                    // TODO show error message
-                                }
-                            }
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        } finally {
-                            mSwipeRefreshLayout.setRefreshing(false);
-                        }
-                    }
-                }, new Response.ErrorListener() {
-
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.d(LOG, "Error: " + error.getMessage());
-                        // TODO show error message
-                        mSwipeRefreshLayout.setRefreshing(false);
-                    }
-                }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-
-                AuthManager authManager = AuthManager.getInstance(getActivity());
-
-                params.put("u_id", authManager.getUserId());
-                params.put("u_pass", authManager.getUserPassword());
-                params.put("p_chk", "key");
-
-                return params;
+            for (int k = 0; k < message.length(); k++) {
+                JSONArray item = message.getJSONArray(k);
+                mChats.add(new Chat(item.getString(1),
+                        item.getString(0),
+                        item.getString(2),
+                        item.getString(4)));
             }
-        };
 
-        Server.getInstance(getActivity()).addToRequestQueue(jsObjRequest);
+            mAdapter.notifyDataSetChanged();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } finally {
+            mSwipeRefreshLayout.setRefreshing(false);
+        }
+    }
+
+    @Override
+    public void onError(String content) {
+        // TODO show error message
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     @Override
@@ -178,9 +148,5 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
     public void onDetach() {
         super.onDetach();
         mListener = null;
-    }
-
-    public interface OnChatSelectedListener {
-        void onChatSelected(String id);
     }
 }
