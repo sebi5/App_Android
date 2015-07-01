@@ -26,8 +26,7 @@ import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.AllMessagesRequest;
 import sky.chin.penpal.utils.AuthManager;
 
-public class MessageTabFragment extends Fragment implements OnRecyclerViewItemClickListener,
-        ServerResponseListener{
+public class MessageTabFragment extends Fragment implements OnRecyclerViewItemClickListener{
 
     public interface OnChatSelectedListener {
         void onChatSelected(String id);
@@ -93,38 +92,39 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
                 new AllMessagesRequest.Builder()
                         .userId(authManager.getUserId())
                         .userPassword(authManager.getUserPassword())
-                        .build(), this);
-    }
+                        .build(),
+                new ServerResponseListener() {
+                    @Override
+                    public void onSuccess(JSONObject data) {
+                        try {
+                            JSONArray message = data.getJSONArray("message")
+                                    .getJSONArray(0);
 
-    @Override
-    public void onSuccess(JSONObject data) {
-        try {
-            JSONArray message = data.getJSONArray("message")
-                    .getJSONArray(0);
+                            // Clear old records
+                            mChats.clear();
 
-            // Clear old records
-            mChats.clear();
+                            for (int k = 0; k < message.length(); k++) {
+                                JSONArray item = message.getJSONArray(k);
+                                mChats.add(new Chat(item.getString(1),
+                                        item.getString(0),
+                                        item.getString(2),
+                                        item.getString(4)));
+                            }
 
-            for (int k = 0; k < message.length(); k++) {
-                JSONArray item = message.getJSONArray(k);
-                mChats.add(new Chat(item.getString(1),
-                        item.getString(0),
-                        item.getString(2),
-                        item.getString(4)));
-            }
+                            mAdapter.notifyDataSetChanged();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        } finally {
+                            mSwipeRefreshLayout.setRefreshing(false);
+                        }
+                    }
 
-            mAdapter.notifyDataSetChanged();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } finally {
-            mSwipeRefreshLayout.setRefreshing(false);
-        }
-    }
-
-    @Override
-    public void onError(String content) {
-        // TODO show error message
-        mSwipeRefreshLayout.setRefreshing(false);
+                    @Override
+                    public void onError(String content) {
+                        // TODO show error message
+                        mSwipeRefreshLayout.setRefreshing(false);
+                    }
+                });
     }
 
     @Override

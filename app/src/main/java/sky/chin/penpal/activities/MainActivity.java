@@ -2,6 +2,7 @@ package sky.chin.penpal.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.View.OnClickListener;
 
@@ -9,7 +10,7 @@ import sky.chin.penpal.R;
 import sky.chin.penpal.utils.AuthManager;
 
 
-public class MainActivity extends SuperActivity implements OnClickListener {
+public class MainActivity extends AppCompatActivity implements OnClickListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

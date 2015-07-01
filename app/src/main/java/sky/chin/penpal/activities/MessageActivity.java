@@ -2,6 +2,7 @@ package sky.chin.penpal.activities;
 
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 
@@ -20,8 +21,7 @@ import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.GetMessagesRequest;
 import sky.chin.penpal.utils.AuthManager;
 
-public class MessageActivity extends SuperActivity implements OnRecyclerViewItemClickListener,
-        ServerResponseListener{
+public class MessageActivity extends AppCompatActivity implements OnRecyclerViewItemClickListener{
 
     private static final String LOG = MessageActivity.class.getSimpleName();
 
@@ -73,37 +73,39 @@ public class MessageActivity extends SuperActivity implements OnRecyclerViewItem
                         .id(id)
                         .userId(authManager.getUserId())
                         .userPassword(authManager.getUserPassword())
-                        .build(), this);
-    }
+                        .build(),
+                new ServerResponseListener() {
+                    @Override
+                    public void onSuccess(JSONObject data) {
+                        try {
+                            JSONArray messages = data.getJSONArray("messages")
+                                    .getJSONArray(0);
 
-    @Override
-    public void onSuccess(JSONObject data) {
-        try {
-            JSONArray messages = data.getJSONArray("messages")
-                    .getJSONArray(0);
+                            // Clear old records
+                            mMessages.clear();
 
-            // Clear old records
-            mMessages.clear();
+                            for (int k = 0; k < messages.length(); k++) {
+                                JSONArray item = messages.getJSONArray(k);
+                                mMessages.add(new Message(item.getString(1),
+                                        item.getString(0),
+                                        item.getString(2)));
+                            }
 
-            for (int k = 0; k < messages.length(); k++) {
-                JSONArray item = messages.getJSONArray(k);
-                mMessages.add(new Message(item.getString(1),
-                        item.getString(0),
-                        item.getString(2)));
-            }
+                            mAdapter.notifyDataSetChanged();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        } finally {
+                            mSwipeRefreshLayout.setRefreshing(false);
+                        }
+                    }
 
-            mAdapter.notifyDataSetChanged();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } finally {
-            mSwipeRefreshLayout.setRefreshing(false);
-        }
-    }
-
-    @Override
-    public void onError(String content) {
-        // TODO show error message
-        mSwipeRefreshLayout.setRefreshing(false);
+                    @Override
+                    public void onError(String content) {
+                        // TODO show error message
+                        mSwipeRefreshLayout.setRefreshing(false);
+                    }
+                }
+        );
     }
 
     @Override

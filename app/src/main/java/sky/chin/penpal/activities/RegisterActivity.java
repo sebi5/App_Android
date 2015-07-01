@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.DialogFragment;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -35,7 +36,7 @@ import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.RegisterRequest;
 import sky.chin.penpal.utils.AuthManager;
 
-public class RegisterActivity extends SuperActivity implements ServerResponseListener {
+public class RegisterActivity extends AppCompatActivity {
 
     private Button regBirthDate, regGender, regCountry, regRegion, btnSignUp;
     private EditText regUsername, regName, regPassword, regEmail;
@@ -259,7 +260,32 @@ public class RegisterActivity extends SuperActivity implements ServerResponseLis
                                 .birthDate(birthDate)
                                 .country(country)
                                 .region(region + "")
-                                .build(), RegisterActivity.this);
+                                .build(),
+                        new ServerResponseListener() {
+                            @Override
+                            public void onSuccess(JSONObject data) {
+                                try {
+                                    String userId = data.getString("user_id");
+                                    String userPassword = data.getString("password");
+
+                                    AuthManager.getInstance(RegisterActivity.this).setLogin(userId, userPassword);
+                                    finish();
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+
+                                btnSignUp.setText(getResources().getString(R.string.sign_up));
+                                btnSignUp.setEnabled(true);
+                            }
+
+                            @Override
+                            public void onError(String content) {
+                                showErrorMessage(content);
+                                btnSignUp.setText(getResources().getString(R.string.sign_up));
+                                btnSignUp.setEnabled(true);
+                            }
+                        }
+                );
             }
         });
     }
@@ -288,29 +314,6 @@ public class RegisterActivity extends SuperActivity implements ServerResponseLis
                 scrollView.scrollTo(0, view.getTop());
             }
         });
-    }
-
-    @Override
-    public void onSuccess(JSONObject data) {
-        try {
-            String userId = data.getString("user_id");
-            String userPassword = data.getString("password");
-
-            AuthManager.getInstance(RegisterActivity.this).setLogin(userId, userPassword);
-            finish();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        btnSignUp.setText(getResources().getString(R.string.sign_up));
-        btnSignUp.setEnabled(true);
-    }
-
-    @Override
-    public void onError(String content) {
-        showErrorMessage(content);
-        btnSignUp.setText(getResources().getString(R.string.sign_up));
-        btnSignUp.setEnabled(true);
     }
 
     public static class DatePickerFragment extends DialogFragment
