@@ -5,23 +5,23 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 
 import sky.chin.penpal.R;
 import sky.chin.penpal.adapters.MessageAdapter;
+import sky.chin.penpal.core.events.message.MessageEvent;
 import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Message;
-import sky.chin.penpal.server.Server;
-import sky.chin.penpal.server.interfaces.ServerResponseListener;
-import sky.chin.penpal.server.requests.GetMessagesRequest;
 import sky.chin.penpal.utils.AuthManager;
 
-public class MessageActivity extends AppCompatActivity implements OnRecyclerViewItemClickListener{
+public class MessageActivity extends AppCompatActivity implements OnRecyclerViewItemClickListener,
+        Observer{
 
     private static final String LOG = MessageActivity.class.getSimpleName();
 
@@ -29,9 +29,14 @@ public class MessageActivity extends AppCompatActivity implements OnRecyclerView
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
     private SwipeRefreshLayout mSwipeRefreshLayout;
+    private EditText messageBox;
+    private Button sendButton;
 
     private ArrayList<Message> mMessages = new ArrayList<>();
     private String id;
+
+    private MessageEvent mEvent;
+    private AuthManager authManager = new AuthManager(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +51,7 @@ public class MessageActivity extends AppCompatActivity implements OnRecyclerView
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                findMessages(id);
+                mEvent.get(id, authManager.getUserId(), authManager.getUserPassword());
             }
         });
 
@@ -60,56 +65,33 @@ public class MessageActivity extends AppCompatActivity implements OnRecyclerView
         mAdapter = new MessageAdapter(mMessages, this);
         mRecyclerView.setAdapter(mAdapter);
 
-        findMessages(id);
-    }
+        mEvent = new MessageEvent(this);
+        mEvent.addObserver(this);
 
-    private void findMessages(String id) {
-        mSwipeRefreshLayout.setRefreshing(true);
+        mEvent.get(id, authManager.getUserId(), authManager.getUserPassword());
 
-        AuthManager authManager = AuthManager.getInstance(this);
+        messageBox = (EditText) findViewById(R.id.messageBox);
+        sendButton = (Button) findViewById(R.id.btnSendMessage);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String text = messageBox.getText().toString();
 
-        Server.getInstance(this).sendRequest(
-                new GetMessagesRequest.Builder()
-                        .id(id)
-                        .userId(authManager.getUserId())
-                        .userPassword(authManager.getUserPassword())
-                        .build(),
-                new ServerResponseListener() {
-                    @Override
-                    public void onSuccess(JSONObject data) {
-                        try {
-                            JSONArray messages = data.getJSONArray("messages")
-                                    .getJSONArray(0);
+                if ("".equals(text)) return;
 
-                            // Clear old records
-                            mMessages.clear();
-
-                            for (int k = 0; k < messages.length(); k++) {
-                                JSONArray item = messages.getJSONArray(k);
-                                mMessages.add(new Message(item.getString(1),
-                                        item.getString(0),
-                                        item.getString(2)));
-                            }
-
-                            mAdapter.notifyDataSetChanged();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        } finally {
-                            mSwipeRefreshLayout.setRefreshing(false);
-                        }
-                    }
-
-                    @Override
-                    public void onError(String content) {
-                        // TODO show error message
-                        mSwipeRefreshLayout.setRefreshing(false);
-                    }
-                }
-        );
+                mEvent.send(text, id, authManager.getUserId(), authManager.getUserPassword());
+            }
+        });
     }
 
     @Override
     public void onRecyclerViewItemClicked(int position) {
 
+    }
+
+    @Override
+    public void update(Observable observable, Object o) {
+        mMessages = (ArrayList<Message>) o;
+        mAdapter.notifyDataSetChanged();
     }
 }
