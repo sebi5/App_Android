@@ -16,9 +16,8 @@ public class AuthManager {
 
     public AuthManager(Context context) {
         this.context = context;
-        SharedPreferences settings = context.getSharedPreferences(ConfigPreferences.PREFS_NAME, 0);
-        userId = settings.getString(ConfigPreferences.PREFS_USER_ID, "");
-        userPassword = settings.getString(ConfigPreferences.PREFS_USER_PASSWORD, "");
+        userId = PrefUtils.getPrefsUserId(this.context);
+        userPassword = PrefUtils.getPrefsUserPassword(this.context);
 
         Log.d("Auth", "userId: " + userId + ", userPassword: " + userPassword);
     }
@@ -39,29 +38,14 @@ public class AuthManager {
         this.userPassword = userPassword;
 
         // Save into SharedPreferences
-        SharedPreferences settings = context.getSharedPreferences(ConfigPreferences.PREFS_NAME, 0);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putString(ConfigPreferences.PREFS_USER_ID, userId);
-        editor.putString(ConfigPreferences.PREFS_USER_PASSWORD, userPassword);
-
-        Log.d("Login", "Saving settings: " + ConfigPreferences.PREFS_USER_ID + " = " + userId + ", " +
-                ConfigPreferences.PREFS_USER_PASSWORD + " = " + userPassword);
-
-        editor.commit();
+        PrefUtils.saveLogIn(context, userId, userPassword);
     }
 
     public void removeLogin() {
         this.userId = "";
         this.userPassword = "";
 
-        SharedPreferences settings = context.getSharedPreferences(ConfigPreferences.PREFS_NAME, 0);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.remove(ConfigPreferences.PREFS_USER_ID);
-        editor.remove(ConfigPreferences.PREFS_USER_PASSWORD);
-
-        Log.d("Login", "Removing settings");
-
-        editor.commit();
+        PrefUtils.removeLogIn(context);
     }
 
     public String getUserId() {
