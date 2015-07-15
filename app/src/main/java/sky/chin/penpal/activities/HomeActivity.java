@@ -20,7 +20,7 @@ import sky.chin.penpal.R;
 import sky.chin.penpal.fragments.MessageTabFragment;
 import sky.chin.penpal.utils.AuthManager;
 
-public class HomeActivity extends AppCompatActivity implements MessageTabFragment.OnChatSelectedListener {
+public class HomeActivity extends AppCompatActivity {
 
     private DemoCollectionPagerAdapter mDemoCollectionPagerAdapter;
     private ViewPager mViewPager;
@@ -84,13 +84,6 @@ public class HomeActivity extends AppCompatActivity implements MessageTabFragmen
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    @Override
-    public void onChatSelected(String id) {
-        Intent message = new Intent(this, MessageActivity.class);
-        message.putExtra("id", id);
-        startActivity(message);
     }
 
     public class DemoCollectionPagerAdapter extends FragmentStatePagerAdapter {

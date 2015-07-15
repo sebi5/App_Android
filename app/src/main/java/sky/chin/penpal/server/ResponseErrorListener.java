@@ -17,7 +17,9 @@ public class ResponseErrorListener implements Response.ErrorListener {
 
     @Override
     public void onErrorResponse(VolleyError error) {
-        Log.d("Response Error", error.getMessage());
-        mListener.onError(error.getMessage());
+        if (error != null) {
+            Log.d("Response Error", error.getMessage());
+            mListener.onError(error.getMessage());
+        }
     }
 }

@@ -1,6 +1,8 @@
 package sky.chin.penpal.adapters;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +14,7 @@ import com.android.volley.toolbox.NetworkImageView;
 import java.util.ArrayList;
 
 import sky.chin.penpal.R;
+import sky.chin.penpal.activities.MessageActivity;
 import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Chat;
@@ -19,9 +22,7 @@ import sky.chin.penpal.server.Server;
 
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     private ArrayList<Chat> mDataset;
-    private Context mContext;
-
-    private OnRecyclerViewItemClickListener mOnClickListener;
+    private Activity mActivity;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public NetworkImageView mProfilePhotos;
@@ -33,11 +34,14 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         }
     }
 
-    public ChatAdapter(Context myContext, ArrayList<Chat> myDataset
-            , OnRecyclerViewItemClickListener myOnClickListener) {
-        mContext = myContext;
-        mDataset = myDataset;
-        mOnClickListener = myOnClickListener;
+    public ChatAdapter(Activity activity) {
+        mActivity = activity;
+        mDataset = new ArrayList<>();
+    }
+
+    public void addChat(Chat chat) {
+        mDataset.add(chat);
+        notifyItemInserted(mDataset.indexOf(chat));
     }
 
     @Override
@@ -53,18 +57,21 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     // Replace the contents of a view (invoked by the layout manager)
     @Override
     public void onBindViewHolder(ViewHolder holder, final int position) {
-        Chat c = mDataset.get(position);
+        final Chat c = mDataset.get(position);
         holder.mTitle.setText(c.getTitle());
 
-        if (c.hasProfilePhoto())
+//        if (c.hasProfilePhoto())
             holder.mProfilePhotos.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getProfilePhoto(),
-                    Server.getInstance(mContext).getImageLoader());
+                    Server.getInstance(mActivity).getImageLoader());
+//        else
+//            holder.mProfilePhotos.setImageResource(R.mipmap.ic_launcher);
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mOnClickListener != null)
-                    mOnClickListener.onRecyclerViewItemClicked(position);
+                Intent message = new Intent(mActivity, MessageActivity.class);
+                message.putExtra("id", c.getId());
+                mActivity.startActivity(message);
             }
         });
     }

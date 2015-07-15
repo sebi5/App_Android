@@ -1,15 +1,14 @@
 package sky.chin.penpal.fragments;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,28 +18,22 @@ import java.util.ArrayList;
 
 import sky.chin.penpal.R;
 import sky.chin.penpal.adapters.ChatAdapter;
-import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Chat;
 import sky.chin.penpal.server.Server;
 import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.AllMessagesRequest;
 import sky.chin.penpal.utils.AuthManager;
+import sky.chin.penpal.widgets.EndlessRecyclerOnScrollListener;
 
-public class MessageTabFragment extends Fragment implements OnRecyclerViewItemClickListener{
-
-    public interface OnChatSelectedListener {
-        void onChatSelected(String id);
-    }
+public class MessageTabFragment extends Fragment{
 
     private static final String LOG = MessageTabFragment.class.getSimpleName();
 
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
-    private RecyclerView.LayoutManager mLayoutManager;
+    private ChatAdapter mAdapter;
+    private LinearLayoutManager mLayoutManager;
+    private EndlessRecyclerOnScrollListener mRecyclerOnScrollListener;
     private SwipeRefreshLayout mSwipeRefreshLayout;
-
-    private ArrayList<Chat> mChats = new ArrayList<>();
-    private OnChatSelectedListener mListener;
 
     public static MessageTabFragment newInstance() {
         return new MessageTabFragment();
@@ -64,7 +57,7 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                findChats();
+                findChats(1);
             }
         });
 
@@ -74,24 +67,44 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
 
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerOnScrollListener = new EndlessRecyclerOnScrollListener(mLayoutManager) {
+            @Override
+            public void onLoadMore(int current_page) {
+                findChats(current_page);
+            }
+        };
+        mRecyclerView.addOnScrollListener(mRecyclerOnScrollListener);
 
-        mAdapter = new ChatAdapter(getActivity(), mChats, this);
+        mAdapter = new ChatAdapter(getActivity());
         mRecyclerView.setAdapter(mAdapter);
 
-        findChats();
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+            }
+        });
+
+        findChats(1);
 
         return v;
     }
 
-    private void findChats() {
+    final private int LIMIT = 10;
+
+    private void findChats(int page) {
         mSwipeRefreshLayout.setRefreshing(true);
 
         AuthManager authManager = AuthManager.getInstance(getActivity());
+
+        String skip = ((page-1) * page) + "";
 
         Server.getInstance(getActivity()).sendRequest(
                 new AllMessagesRequest.Builder()
                         .userId(authManager.getUserId())
                         .userPassword(authManager.getUserPassword())
+                        .limit(LIMIT+"")
+                        .skip(skip)
                         .build(),
                 new ServerResponseListener() {
                     @Override
@@ -100,18 +113,43 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
                             JSONArray message = data.getJSONArray("message")
                                     .getJSONArray(0);
 
-                            // Clear old records
-                            mChats.clear();
-
                             for (int k = 0; k < message.length(); k++) {
                                 JSONArray item = message.getJSONArray(k);
-                                mChats.add(new Chat(item.getString(1),
+                                mAdapter.addChat(new Chat(item.getString(1),
+                                        item.getString(0),
+                                        item.getString(2),
+                                        item.getString(4)));
+
+                                mAdapter.addChat(new Chat(item.getString(1),
+                                        item.getString(0),
+                                        item.getString(2),
+                                        item.getString(4)));
+
+                                mAdapter.addChat(new Chat(item.getString(1),
+                                        item.getString(0),
+                                        item.getString(2),
+                                        item.getString(4)));
+                                mAdapter.addChat(new Chat(item.getString(1),
+                                        item.getString(0),
+                                        item.getString(2),
+                                        item.getString(4)));
+
+                                mAdapter.addChat(new Chat(item.getString(1),
+                                        item.getString(0),
+                                        item.getString(2),
+                                        item.getString(4)));
+
+                                mAdapter.addChat(new Chat(item.getString(1),
                                         item.getString(0),
                                         item.getString(2),
                                         item.getString(4)));
                             }
 
                             mAdapter.notifyDataSetChanged();
+
+                            if (message.length() < LIMIT)
+                                mRecyclerView.removeOnScrollListener(mRecyclerOnScrollListener);
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         } finally {
@@ -125,28 +163,5 @@ public class MessageTabFragment extends Fragment implements OnRecyclerViewItemCl
                         mSwipeRefreshLayout.setRefreshing(false);
                     }
                 });
-    }
-
-    @Override
-    public void onRecyclerViewItemClicked(int position) {
-        Toast.makeText(getActivity(), "Clicked " + position, Toast.LENGTH_SHORT).show();
-        mListener.onChatSelected(mChats.get(position).getId());
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mListener = (OnChatSelectedListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnChatSelectedListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
     }
 }
