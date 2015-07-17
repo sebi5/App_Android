@@ -18,10 +18,18 @@
             app:tabMode="fixed"
             app:tabGravity="fill" />
 
-        <sky.chin.penpal.widgets.NonSwipeableViewPager
-            android:id="@+id/pager"
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="fill_parent"/>
+            android:layout_height="fill_parent">
+
+            <sky.chin.penpal.widgets.NonSwipeableViewPager
+                android:id="@+id/pager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+
+            <include layout="@layout/offline_message" />
+
+        </RelativeLayout>
 
     </LinearLayout>
 

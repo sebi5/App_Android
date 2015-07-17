@@ -20,7 +20,7 @@ import sky.chin.penpal.R;
 import sky.chin.penpal.fragments.MessageTabFragment;
 import sky.chin.penpal.utils.AuthManager;
 
-public class HomeActivity extends AppCompatActivity {
+public class HomeActivity extends BaseActivity {
 
     private DemoCollectionPagerAdapter mDemoCollectionPagerAdapter;
     private ViewPager mViewPager;

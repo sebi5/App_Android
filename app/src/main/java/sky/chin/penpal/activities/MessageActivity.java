@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
@@ -28,10 +27,9 @@ import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.GetMessagesRequest;
 import sky.chin.penpal.server.requests.SendMessageRequest;
 import sky.chin.penpal.utils.AuthManager;
-import sky.chin.penpal.utils.ConnectivityUtils;
-import sky.chin.penpal.utils.TimeUtils;
+import sky.chin.penpal.utils.TimestampUtils;
 
-public class MessageActivity extends AppCompatActivity{
+public class MessageActivity extends BaseActivity{
 
     private static final String LOG = MessageActivity.class.getSimpleName();
 
@@ -96,10 +94,10 @@ public class MessageActivity extends AppCompatActivity{
     }
 
     public void get(String id, String userId, String userPassword) {
-//        if (ConnectivityUtils.isConnected(this))
+        if (isOffline())
+            getMessagesFromDatabase(id);
+        else
             getMessagesFromServer(id, userId, userPassword, 1);
-//        else
-//            getMessagesFromDatabase(id);
     }
 
     private void getMessagesFromServer(final String id, String userId, String userPassword, int page) {
@@ -202,7 +200,7 @@ public class MessageActivity extends AppCompatActivity{
 
     public void send(String text, String id, String userId, String userPassword) {
 
-        final Message newMessage = new Message(text, TimeUtils.generateTimestamp(), userId);
+        final Message newMessage = new Message(text, TimestampUtils.generateTimestamp(), userId);
         mAdapter.addMessage(newMessage);
 
 //        if (ConnectivityUtils.isConnected(this)) {
