@@ -6,10 +6,13 @@ public class Message {
     private String timestamp;
     private String senderId;
 
-    public Message(String text, String timestamp, String senderId) {
+    private String profilePhoto;
+
+    public Message(String text, String timestamp, String senderId, String profilePhoto) {
         this.text = text;
         this.timestamp = timestamp;
         this.senderId = senderId;
+        this.profilePhoto = profilePhoto;
     }
 
     public String getText() {
@@ -22,5 +25,9 @@ public class Message {
 
     public String getSenderId() {
         return senderId;
+    }
+
+    public String getProfilePhoto() {
+        return profilePhoto;
     }
 }

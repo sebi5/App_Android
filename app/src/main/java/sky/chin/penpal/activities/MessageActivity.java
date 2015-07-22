@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -19,8 +20,8 @@ import java.util.ArrayList;
 
 import sky.chin.penpal.R;
 import sky.chin.penpal.adapters.MessageAdapter;
+import sky.chin.penpal.core.databases.DbHelper;
 import sky.chin.penpal.core.databases.MessageReaderContract;
-import sky.chin.penpal.core.databases.MessageReaderDbHelper;
 import sky.chin.penpal.models.Message;
 import sky.chin.penpal.server.Server;
 import sky.chin.penpal.server.interfaces.ServerResponseListener;
@@ -28,24 +29,37 @@ import sky.chin.penpal.server.requests.GetMessagesRequest;
 import sky.chin.penpal.server.requests.SendMessageRequest;
 import sky.chin.penpal.utils.AuthManager;
 import sky.chin.penpal.utils.TimestampUtils;
+import sky.chin.penpal.widgets.ToplessRecyclerOnScrollListener;
 
 public class MessageActivity extends BaseActivity{
 
     private static final String LOG = MessageActivity.class.getSimpleName();
 
     final private int MAX_RECENT_MESSAGES = 20;
+
     final private int LIMIT = 10;
+    private int mSkip = 0;
 
     private RecyclerView mRecyclerView;
     private MessageAdapter mAdapter;
-    private RecyclerView.LayoutManager mLayoutManager;
+    private LinearLayoutManager mLayoutManager;
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private EditText messageBox;
     private Button sendButton;
+    private ToplessRecyclerOnScrollListener mRecyclerOnScrollListener;
 
-    private String id;
+    private String mMessageId;
+    public static String INTENT_MESSAGE_ID = "message_id";
 
     private AuthManager authManager;
+
+    private SwipeRefreshLayout.OnRefreshListener mOnRefreshListener =
+            new SwipeRefreshLayout.OnRefreshListener() {
+                @Override
+                public void onRefresh() {
+                    getMessagesFromServer();
+                }
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,18 +67,12 @@ public class MessageActivity extends BaseActivity{
         setContentView(R.layout.activity_message);
 
         if (getIntent() != null) {
-            id = getIntent().getStringExtra("id");
+            mMessageId = getIntent().getStringExtra(INTENT_MESSAGE_ID);
         }
 
         authManager = new AuthManager(this);
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshLayout);
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                get(id, authManager.getUserId(), authManager.getUserPassword());
-            }
-        });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);
 
@@ -72,8 +80,15 @@ public class MessageActivity extends BaseActivity{
 
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerOnScrollListener = new ToplessRecyclerOnScrollListener(mLayoutManager) {
+            @Override
+            public void onLoadMore() {
+                getMessagesFromServer();
+            }
+        };
+        mRecyclerView.addOnScrollListener(mRecyclerOnScrollListener);
 
-        mAdapter = new MessageAdapter();
+        mAdapter = new MessageAdapter(this);
         mRecyclerView.setAdapter(mAdapter);
 
         messageBox = (EditText) findViewById(R.id.messageBox);
@@ -85,31 +100,35 @@ public class MessageActivity extends BaseActivity{
 
                 if ("".equals(text)) return;
 
-                send(text, id, authManager.getUserId(), authManager.getUserPassword());
+                send(text, mMessageId, authManager.getUserId(), authManager.getUserPassword());
                 messageBox.setText("");
             }
         });
 
-        get(id, authManager.getUserId(), authManager.getUserPassword());
+        mSwipeRefreshLayout.setOnRefreshListener(mOnRefreshListener);
+        if (isOffline()) {
+            getMessagesFromDatabase();
+        } else
+            getMessagesFromServer();
     }
 
-    public void get(String id, String userId, String userPassword) {
-        if (isOffline())
-            getMessagesFromDatabase(id);
-        else
-            getMessagesFromServer(id, userId, userPassword, 1);
-    }
+    private void getMessagesFromServer() {
+        mSwipeRefreshLayout.post(new Runnable() {
+            @Override
+            public void run() {
+                mSwipeRefreshLayout.setRefreshing(true);
+            }
+        });
 
-    private void getMessagesFromServer(final String id, String userId, String userPassword, int page) {
-        String skip = ((page-1) * page) + "";
+        mSwipeRefreshLayout.setEnabled(false);
 
         Server.getInstance(this).sendRequest(
                 new GetMessagesRequest.Builder()
-                        .id(id)
-                        .userId(userId)
-                        .userPassword(userPassword)
+                        .id(mMessageId)
+                        .userId(authManager.getUserId())
+                        .userPassword(authManager.getUserPassword())
                         .limit(LIMIT+"")
-                        .skip(skip)
+                        .skip(mSkip+"")
                         .build(),
                 new ServerResponseListener() {
                     @Override
@@ -118,29 +137,53 @@ public class MessageActivity extends BaseActivity{
                             JSONArray messages = data.getJSONArray("messages")
                                     .getJSONArray(0);
 
+                            Log.d(LOG, data.toString());
+
+                            if (mSkip == 0)
+                                mAdapter.clearMessages();
+
+                            ArrayList<Message> messageArrayList = new ArrayList<Message>();
                             for (int k = 0; k < messages.length(); k++) {
                                 JSONArray item = messages.getJSONArray(k);
-                                mAdapter.addMessage(new Message(item.getString(1),
-                                                                item.getString(0),
-                                                                item.getString(2)));
+                                messageArrayList.add(0, new Message(item.getString(1),
+                                        item.getInt(0)+"",
+                                        item.getString(2),
+                                        item.getString(3)));
                             }
 
-                            saveRecentMessages(mAdapter.getMessages());
+                            mAdapter.addMessages(messageArrayList);
+
+                            // Scroll to most recent message when first load and save most recent messages
+                            if (mSkip == 0) {
+                                saveRecentMessages(mAdapter.getMessages());
+                                mRecyclerView.scrollToPosition(messageArrayList.size() - 1);
+                            }
+
+                            // update skip
+                            mSkip += messageArrayList.size();
+
+                            // Remove OnScrollListener if no next page
+                            if (messageArrayList.size() < LIMIT)
+                                mRecyclerView.removeOnScrollListener(mRecyclerOnScrollListener);
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
+
+                        mSwipeRefreshLayout.setRefreshing(false);
                     }
 
                     @Override
                     public void onError(String content) {
-                        getMessagesFromDatabase(id);
+                        mSwipeRefreshLayout.setRefreshing(false);
+                        mSwipeRefreshLayout.setEnabled(true);
                     }
                 }
         );
     }
 
-    private void getMessagesFromDatabase(String id) {
-        MessageReaderDbHelper mDbHelper = new MessageReaderDbHelper(this);
+    private void getMessagesFromDatabase() {
+        DbHelper mDbHelper = new DbHelper(this);
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
         String[] projection = {
@@ -148,10 +191,11 @@ public class MessageActivity extends BaseActivity{
                 MessageReaderContract.MessageEntry.COLUMN_NAME_USER_ID,
                 MessageReaderContract.MessageEntry.COLUMN_NAME_TEXT,
                 MessageReaderContract.MessageEntry.COLUMN_NAME_TIMESTAMP,
+                MessageReaderContract.MessageEntry.COLUMN_NAME_IMAGE,
         };
 
-        String selection = MessageReaderContract.MessageEntry.COLUMN_NAME_USER_ID + " = ?";
-        String[] selectionArgs = { id };
+        String selection = MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_ID + " = ?";
+        String[] selectionArgs = {mMessageId};
 
         Cursor c = db.query(
                 MessageReaderContract.MessageEntry.TABLE_NAME,  // The table to query
@@ -167,9 +211,15 @@ public class MessageActivity extends BaseActivity{
             do {
                 mAdapter.addMessage(new Message(c.getString(2),
                         c.getString(3),
-                        c.getString(1)));
+                        c.getString(1),
+                        c.getString(4)));
             } while (c.moveToNext());
         }
+
+        mAdapter.notifyDataSetChanged();
+
+        // Scroll to most recent message
+        mRecyclerView.scrollToPosition(mAdapter.getMessages().size()-1);
     }
 
     private void saveRecentMessages(ArrayList<Message> messages) {
@@ -177,20 +227,24 @@ public class MessageActivity extends BaseActivity{
         if (messages.size() > MAX_RECENT_MESSAGES)
             offset = messages.size() - MAX_RECENT_MESSAGES - 1;
 
-        MessageReaderDbHelper mDbHelper = new MessageReaderDbHelper(this);
+        DbHelper mDbHelper = new DbHelper(this);
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        db.delete(MessageReaderContract.MessageEntry.TABLE_NAME, null, null);
 
         for (int i = offset; i < messages.size(); i++) {
             Message m = messages.get(i);
-            insertMessageToDatabase(db, m.getSenderId(), m.getText(), m.getTimestamp());
+            insertMessageToDatabase(db, m.getSenderId(), m.getText(), m.getTimestamp(), m.getProfilePhoto());
         }
     }
 
-    private void insertMessageToDatabase(SQLiteDatabase db, String id, String text, String timestamp) {
+    private void insertMessageToDatabase(SQLiteDatabase db, String id, String text, String timestamp, String image) {
         ContentValues values = new ContentValues();
+        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_ID, mMessageId);
         values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_USER_ID, id);
         values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_TEXT, text);
         values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_TIMESTAMP, timestamp);
+        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_IMAGE, image);
 
         db.insert(
                 MessageReaderContract.MessageEntry.TABLE_NAME,
@@ -200,7 +254,8 @@ public class MessageActivity extends BaseActivity{
 
     public void send(String text, String id, String userId, String userPassword) {
 
-        final Message newMessage = new Message(text, TimestampUtils.generateTimestamp(), userId);
+        // TODO add own profile picture
+        final Message newMessage = new Message(text, TimestampUtils.generateTimestamp(), userId, "");
         mAdapter.addMessage(newMessage);
 
 //        if (ConnectivityUtils.isConnected(this)) {

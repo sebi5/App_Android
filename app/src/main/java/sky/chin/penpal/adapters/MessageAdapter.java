@@ -1,32 +1,49 @@
 package sky.chin.penpal.adapters;
 
+import android.content.Context;
 import android.support.v7.widget.RecyclerView;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.lang.reflect.Array;
+import com.android.volley.toolbox.NetworkImageView;
+
 import java.util.ArrayList;
 
 import sky.chin.penpal.R;
-import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
+import sky.chin.penpal.configs.Url;
 import sky.chin.penpal.models.Message;
+import sky.chin.penpal.server.Server;
+import sky.chin.penpal.utils.PrefUtils;
+import sky.chin.penpal.utils.TimestampUtils;
 
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHolder> {
     private ArrayList<Message> mDataset;
+    private Context mContext;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        public TextView mText;
+        public TextView mText, mTimestamp;
+        public NetworkImageView mProfilePhoto;
         public ViewHolder(View v) {
             super(v);
-            mText = (TextView) v.findViewById(R.id.title);
+            mText = (TextView) v.findViewById(R.id.text);
+            mTimestamp = (TextView) v.findViewById(R.id.timestamp);
+            mProfilePhoto = (NetworkImageView) v.findViewById(R.id.profilePhotos);
         }
     }
 
-    public MessageAdapter() {
+    public MessageAdapter(Context context) {
+        mContext = context;
         mDataset = new ArrayList<>();
+    }
+
+    public void addMessages(ArrayList<Message> messages) {
+        mDataset.addAll(0, messages);
+    }
+
+    public void clearMessages() {
+        mDataset.clear();
     }
 
     public void addMessage(Message message) {
@@ -44,13 +61,25 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     }
 
     @Override
+    public int getItemViewType(int position) {
+        Message c = mDataset.get(position);
+        return c.getSenderId().equals(PrefUtils.getPrefsUserId(mContext)) ?
+                1/* Sent by me */:
+                0/* Sent by friend */;
+    }
+
+    @Override
     public MessageAdapter.ViewHolder onCreateViewHolder(ViewGroup parent,
                                                      int viewType) {
-        // create a new view
-        View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_message, parent, false);
-        ViewHolder vh = new ViewHolder(v);
-        return vh;
+        switch (viewType) {
+            case 0:
+                return new ViewHolder(LayoutInflater.from(parent.getContext())
+                        .inflate(R.layout.item_message, parent, false));
+            case 1:
+                return new ViewHolder(LayoutInflater.from(parent.getContext())
+                        .inflate(R.layout.item_message_me, parent, false));
+        }
+        return null;
     }
 
     // Replace the contents of a view (invoked by the layout manager)
@@ -58,7 +87,11 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     public void onBindViewHolder(ViewHolder holder, final int position) {
         Message c = mDataset.get(position);
         holder.mText.setText(c.getText());
-        holder.mText.setGravity(Gravity.RIGHT);
+        holder.mTimestamp.setText(TimestampUtils.convertTimestampToText(c.getTimestamp()));
+
+        holder.mProfilePhoto.setDefaultImageResId(R.drawable.default_image);
+        holder.mProfilePhoto.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getProfilePhoto(),
+                Server.getInstance(mContext).getImageLoader());
     }
 
     // Return the size of your dataset (invoked by the layout manager)

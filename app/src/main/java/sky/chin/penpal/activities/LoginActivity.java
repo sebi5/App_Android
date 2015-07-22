@@ -11,9 +11,6 @@ import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import sky.chin.penpal.R;
 import sky.chin.penpal.server.Server;
 import sky.chin.penpal.server.interfaces.ServerResponseListener;

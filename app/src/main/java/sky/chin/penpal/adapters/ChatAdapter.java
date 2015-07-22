@@ -1,7 +1,6 @@
 package sky.chin.penpal.adapters;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -16,9 +15,9 @@ import java.util.ArrayList;
 import sky.chin.penpal.R;
 import sky.chin.penpal.activities.MessageActivity;
 import sky.chin.penpal.configs.Url;
-import sky.chin.penpal.interfaces.OnRecyclerViewItemClickListener;
 import sky.chin.penpal.models.Chat;
 import sky.chin.penpal.server.Server;
+import sky.chin.penpal.utils.TimestampUtils;
 
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     private ArrayList<Chat> mDataset;
@@ -26,11 +25,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public NetworkImageView mProfilePhotos;
-        public TextView mTitle;
+        public TextView mTitle, mName, mTimestamp;
         public ViewHolder(View v) {
             super(v);
             mProfilePhotos = (NetworkImageView) v.findViewById(R.id.profilePhotos);
             mTitle = (TextView) v.findViewById(R.id.title);
+            mName = (TextView) v.findViewById(R.id.name);
+            mTimestamp = (TextView) v.findViewById(R.id.timestamp);
         }
     }
 
@@ -38,6 +39,12 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         mActivity = activity;
         mDataset = new ArrayList<>();
     }
+
+    public void clearChats() {
+        mDataset.clear();
+        notifyDataSetChanged();
+    }
+
 
     public void addChat(Chat chat) {
         mDataset.add(chat);
@@ -59,18 +66,18 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     public void onBindViewHolder(ViewHolder holder, final int position) {
         final Chat c = mDataset.get(position);
         holder.mTitle.setText(c.getTitle());
+        holder.mName.setText(c.getUsername());
+        holder.mTimestamp.setText(TimestampUtils.convertTimestampToText(c.getTimestamp()));
 
-//        if (c.hasProfilePhoto())
-            holder.mProfilePhotos.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getProfilePhoto(),
-                    Server.getInstance(mActivity).getImageLoader());
-//        else
-//            holder.mProfilePhotos.setImageResource(R.mipmap.ic_launcher);
+        holder.mProfilePhotos.setDefaultImageResId(R.drawable.default_image);
+        holder.mProfilePhotos.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getProfilePhoto(),
+                Server.getInstance(mActivity).getImageLoader());
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent message = new Intent(mActivity, MessageActivity.class);
-                message.putExtra("id", c.getId());
+                message.putExtra(MessageActivity.INTENT_MESSAGE_ID, c.getId());
                 mActivity.startActivity(message);
             }
         });

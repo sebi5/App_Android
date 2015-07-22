@@ -1,10 +1,7 @@
 package sky.chin.penpal.utils;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Log;
-
-import sky.chin.penpal.configs.ConfigPreferences;
 
 public class AuthManager {
 

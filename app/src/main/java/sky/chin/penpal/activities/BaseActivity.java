@@ -16,7 +16,7 @@ import sky.chin.penpal.R;
 
 public class BaseActivity extends AppCompatActivity {
 
-    private boolean isOffline = true;
+    private static boolean isOffline = true;
 
     BroadcastReceiver networkStateReceiver = new BroadcastReceiver() {
 
