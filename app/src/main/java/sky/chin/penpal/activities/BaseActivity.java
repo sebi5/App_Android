@@ -7,12 +7,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
 import sky.chin.penpal.R;
+import sky.chin.penpal.utils.IntentUtils;
 
 public class BaseActivity extends AppCompatActivity {
 
@@ -22,7 +25,14 @@ public class BaseActivity extends AppCompatActivity {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            isOffline = intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false);
+            IntentUtils.printExtras(intent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                NetworkInfo networkInfo = (NetworkInfo)
+                        intent.getExtras().get(ConnectivityManager.EXTRA_NETWORK_INFO);
+                isOffline = !networkInfo.isConnected();
+            } else
+                isOffline = intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false);
+
             offlineMessage(isOffline);
             Log.w("Network Listener", "Network Type Changed");
         }
@@ -44,8 +54,8 @@ public class BaseActivity extends AppCompatActivity {
         View offlineMessage = findViewById(R.id.offlineMessage);
         if (offlineMessage != null) {
             ValueAnimator showOrHideAnim = show ?
-                        ObjectAnimator.ofFloat(offlineMessage, "y", -100f, 0f):
-                        ObjectAnimator.ofFloat(offlineMessage, "y", 0f, -100f);
+                        ObjectAnimator.ofFloat(offlineMessage, "y", -150f, 0f):
+                        ObjectAnimator.ofFloat(offlineMessage, "y", 0f, -150f);
 
             showOrHideAnim.setDuration(250);
             showOrHideAnim.start();

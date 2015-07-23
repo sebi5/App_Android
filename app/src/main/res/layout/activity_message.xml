@@ -10,6 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:padding="16dp"
+        android:elevation="@dimen/appbar_elevation"
         android:orientation="horizontal">
 
         <LinearLayout android:focusable="true"
@@ -31,8 +32,6 @@
 
     </LinearLayout>
 
-    <include layout="@layout/offline_message" />
-
     <android.support.v4.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
         android:layout_above="@id/messageBoxContainer"
@@ -48,5 +47,7 @@
             android:paddingBottom="8dp"/>
 
     </android.support.v4.widget.SwipeRefreshLayout>
+
+    <include layout="@layout/offline_message" />
 
 </RelativeLayout>
