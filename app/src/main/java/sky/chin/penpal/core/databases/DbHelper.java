@@ -22,24 +22,25 @@ public class DbHelper extends SQLiteOpenHelper {
 
 
     private static final String SQL_CREATE_TABLE_CHAT =
-            "CREATE TABLE " + ChatReaderContract.ChatEntry.TABLE_NAME + " (" +
-                    ChatReaderContract.ChatEntry._ID + " INTEGER PRIMARY KEY," +
-                    ChatReaderContract.ChatEntry.COLUMN_NAME_USER_ID + TEXT_TYPE + COMMA_SEP +
-                    ChatReaderContract.ChatEntry.COLUMN_NAME_USERNAME + TEXT_TYPE + COMMA_SEP +
-                    ChatReaderContract.ChatEntry.COLUMN_NAME_TEXT + TEXT_TYPE + COMMA_SEP +
-                    ChatReaderContract.ChatEntry.COLUMN_NAME_IMAGE + TEXT_TYPE + COMMA_SEP +
-                    ChatReaderContract.ChatEntry.COLUMN_NAME_TIMESTAMP + TEXT_TYPE + COMMA_SEP +
-                    ChatReaderContract.ChatEntry.COLUMN_NAME_READ + INT_TYPE +
+            "CREATE TABLE " + ThreadReaderContract.ThreadEntry.TABLE_NAME + " (" +
+                    ThreadReaderContract.ThreadEntry._ID + " INTEGER PRIMARY KEY," +
+                    ThreadReaderContract.ThreadEntry.COLUMN_NAME_THREAD_ID + TEXT_TYPE + COMMA_SEP +
+                    ThreadReaderContract.ThreadEntry.COLUMN_NAME_USERNAME + TEXT_TYPE + COMMA_SEP +
+                    ThreadReaderContract.ThreadEntry.COLUMN_NAME_TEXT + TEXT_TYPE + COMMA_SEP +
+                    ThreadReaderContract.ThreadEntry.COLUMN_NAME_USER_PHOTO + TEXT_TYPE + COMMA_SEP +
+                    ThreadReaderContract.ThreadEntry.COLUMN_NAME_MESSAGE_DATE + TEXT_TYPE + COMMA_SEP +
+                    ThreadReaderContract.ThreadEntry.COLUMN_NAME_POSTER_ID + TEXT_TYPE + COMMA_SEP +
+                    ThreadReaderContract.ThreadEntry.COLUMN_NAME_READ + INT_TYPE +
                     " )";
 
     private static final String SQL_DELETE_TABLE_MESSAGE =
         "DROP TABLE IF EXISTS " + MessageReaderContract.MessageEntry.TABLE_NAME;
 
     private static final String SQL_DELETE_TABLE_CHAT =
-        "DROP TABLE IF EXISTS " + ChatReaderContract.ChatEntry.TABLE_NAME;
+        "DROP TABLE IF EXISTS " + ThreadReaderContract.ThreadEntry.TABLE_NAME;
 
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 3;
+    public static final int DATABASE_VERSION = 1;
     public static final String DATABASE_NAME = "InterLocalReader.db";
 
     public DbHelper(Context context) {

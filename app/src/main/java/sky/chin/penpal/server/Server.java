@@ -3,6 +3,7 @@ package sky.chin.penpal.server;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.support.v4.util.LruCache;
+import android.util.Log;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -64,11 +65,17 @@ public class Server {
     }
 
     public void sendRequest(ServerRequest request, ServerResponseListener responseListener) {
+        Log.d("Server", "=========================================================");
+        Log.d("Server", "Method: " + (request.method() == Request.Method.POST ? "POST" : "GET"));
+        Log.d("Server", "Url: " + request.url());
+        Log.d("Server", "Params: " + request.getParams().toString());
+        Log.d("Server", "---------------------------------------------------------");
+
         addToRequestQueue(new StringRequestWithParams(
-                request.method(),
-                request.url(),
-                request.getParams(),
-                responseListener)
+                        request.method(),
+                        request.url(),
+                        request.getParams(),
+                        responseListener)
         );
     }
 }

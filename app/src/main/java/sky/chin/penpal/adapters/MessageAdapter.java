@@ -28,8 +28,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         public ViewHolder(View v) {
             super(v);
             mText = (TextView) v.findViewById(R.id.text);
-            mTimestamp = (TextView) v.findViewById(R.id.timestamp);
-            mProfilePhoto = (NetworkImageView) v.findViewById(R.id.profilePhotos);
+            mTimestamp = (TextView) v.findViewById(R.id.messageDate);
+            mProfilePhoto = (NetworkImageView) v.findViewById(R.id.userPhoto);
         }
     }
 

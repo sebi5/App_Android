@@ -8,6 +8,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,10 +21,10 @@ import java.util.ArrayList;
 
 import sky.chin.penpal.R;
 import sky.chin.penpal.activities.BaseActivity;
-import sky.chin.penpal.adapters.ChatAdapter;
-import sky.chin.penpal.core.databases.ChatReaderContract;
+import sky.chin.penpal.adapters.ThreadAdapter;
+import sky.chin.penpal.core.databases.ThreadReaderContract;
 import sky.chin.penpal.core.databases.DbHelper;
-import sky.chin.penpal.models.Chat;
+import sky.chin.penpal.models.Thread;
 import sky.chin.penpal.server.Server;
 import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.AllMessagesRequest;
@@ -35,10 +36,10 @@ public class MessageTabFragment extends Fragment{
 
     private static final String LOG = MessageTabFragment.class.getSimpleName();
 
-    final private int MAX_RECENT_CHATS = 8;
+    final private int MAX_RECENT_THREADS = 8;
 
     private RecyclerView mRecyclerView;
-    private ChatAdapter mAdapter;
+    private ThreadAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
     private EndlessRecyclerOnScrollListener mRecyclerOnScrollListener;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -69,7 +70,7 @@ public class MessageTabFragment extends Fragment{
             @Override
             public void onRefresh() {
                 resetCounter();
-                getChatsFromServer();
+                getThreadsFromServer();
             }
         });
 
@@ -82,18 +83,18 @@ public class MessageTabFragment extends Fragment{
         mRecyclerOnScrollListener = new EndlessRecyclerOnScrollListener(mLayoutManager) {
             @Override
             public void onLoadMore() {
-                getChatsFromServer();
+                getThreadsFromServer();
             }
         };
         mRecyclerView.addOnScrollListener(mRecyclerOnScrollListener);
 
-        mAdapter = new ChatAdapter(getActivity());
+        mAdapter = new ThreadAdapter(getActivity());
         mRecyclerView.setAdapter(mAdapter);
 
         if (((BaseActivity)getActivity()).isOffline())
-            getChatsFromDatabase();
+            getThreadsFromDatabase();
         else
-            getChatsFromServer();
+            getThreadsFromServer();
 
         return v;
     }
@@ -105,7 +106,7 @@ public class MessageTabFragment extends Fragment{
         mSkip = 0;
     }
 
-    private void getChatsFromServer() {
+    private void getThreadsFromServer() {
         mSwipeRefreshLayout.post(new Runnable() {
             @Override public void run() {
                 mSwipeRefreshLayout.setRefreshing(true);
@@ -120,33 +121,35 @@ public class MessageTabFragment extends Fragment{
                         .userPassword(authManager.getUserPassword())
                         .limit(LIMIT+"")
                         .skip(mSkip+"")
+                        .lastId("1") // Dummy value
                         .build(),
                 new ServerResponseListener() {
                     @Override
                     public void onSuccess(JSONObject data) {
                         try {
                             if (mSkip == 0)
-                                mAdapter.clearChats();
+                                mAdapter.clearThreads();
 
                             JSONArray message = data.getJSONArray("message")
                                     .getJSONArray(0);
 
-                            ArrayList<Chat> chatArrayList = new ArrayList<>();
+                            ArrayList<Thread> threadArrayList = new ArrayList<>();
 
                             for (int k = 0; k < message.length(); k++) {
-                                JSONArray item = message.getJSONArray(k);
-                                Chat newChat = new Chat(item.getString(1),
-                                        item.getString(0),
-                                        item.getString(2),
-                                        item.getString(4),
-                                        item.getString(5),
-                                        item.getInt(6) == 1 ? true : false);
-                                mAdapter.addChat(newChat);
-                                chatArrayList.add(newChat);
+                                JSONObject item = message.getJSONObject(k);
+                                Thread newThread = new Thread(item.getString("master_thread_id"),
+                                        item.getString("text"),
+                                        item.getString("message_date"),
+                                        item.getString("user_photo"),
+                                        item.getString("username"),
+                                        item.getString("poster_id"),
+                                        item.getInt("read") == 1 ? true : false);
+                                mAdapter.addThread(newThread);
+                                threadArrayList.add(newThread);
                             }
 
                             mAdapter.notifyDataSetChanged();
-                            saveRecentChats(chatArrayList);
+                            saveRecentThreads(threadArrayList);
 
                             // update skip
                             mSkip += message.length();
@@ -164,27 +167,29 @@ public class MessageTabFragment extends Fragment{
 
                     @Override
                     public void onError(String content) {
+                        Log.d("Message", content);
                         mSwipeRefreshLayout.setRefreshing(false);
                     }
                 });
     }
 
-    private void getChatsFromDatabase() {
+    private void getThreadsFromDatabase() {
         DbHelper mDbHelper = new DbHelper(getActivity());
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
         String[] projection = {
-                ChatReaderContract.ChatEntry._ID,
-                ChatReaderContract.ChatEntry.COLUMN_NAME_USER_ID,
-                ChatReaderContract.ChatEntry.COLUMN_NAME_USERNAME,
-                ChatReaderContract.ChatEntry.COLUMN_NAME_TEXT,
-                ChatReaderContract.ChatEntry.COLUMN_NAME_IMAGE,
-                ChatReaderContract.ChatEntry.COLUMN_NAME_TIMESTAMP,
-                ChatReaderContract.ChatEntry.COLUMN_NAME_READ,
+                ThreadReaderContract.ThreadEntry._ID,
+                ThreadReaderContract.ThreadEntry.COLUMN_NAME_THREAD_ID,
+                ThreadReaderContract.ThreadEntry.COLUMN_NAME_TEXT,
+                ThreadReaderContract.ThreadEntry.COLUMN_NAME_MESSAGE_DATE,
+                ThreadReaderContract.ThreadEntry.COLUMN_NAME_USER_PHOTO,
+                ThreadReaderContract.ThreadEntry.COLUMN_NAME_USERNAME,
+                ThreadReaderContract.ThreadEntry.COLUMN_NAME_POSTER_ID,
+                ThreadReaderContract.ThreadEntry.COLUMN_NAME_READ,
         };
 
         Cursor c = db.query(
-                ChatReaderContract.ChatEntry.TABLE_NAME,  // The table to query
+                ThreadReaderContract.ThreadEntry.TABLE_NAME,  // The table to query
                 projection,                               // The columns to return
                 null,                                // The columns for the WHERE clause
                 null,                            // The values for the WHERE clause
@@ -195,55 +200,59 @@ public class MessageTabFragment extends Fragment{
 
         if (c.moveToFirst()) {
             do {
-                mAdapter.addChat(new Chat(c.getString(1),
-                        c.getString(3),
-                        c.getString(5),
-                        c.getString(4),
+                mAdapter.addThread(new Thread(c.getString(1),
                         c.getString(2),
-                        c.getInt(6) == 1 ? true : false));
+                        c.getString(3),
+                        c.getString(4),
+                        c.getString(5),
+                        c.getString(6),
+                        c.getInt(7) == 1 ? true : false));
             } while (c.moveToNext());
         }
     }
 
-    private void saveRecentChats(ArrayList<Chat> chats) {
+    private void saveRecentThreads(ArrayList<Thread> threads) {
         int offset = 0;
-        if (chats.size() > MAX_RECENT_CHATS)
-            offset = chats.size() - MAX_RECENT_CHATS - 1;
+        if (threads.size() > MAX_RECENT_THREADS)
+            offset = threads.size() - MAX_RECENT_THREADS - 1;
 
         DbHelper mDbHelper = new DbHelper(getActivity());
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
-        db.delete(ChatReaderContract.ChatEntry.TABLE_NAME, null, null);
+        db.delete(ThreadReaderContract.ThreadEntry.TABLE_NAME, null, null);
 
-        for (int i = offset; i < chats.size(); i++) {
-            Chat c = chats.get(i);
-            insertChatToDatabase(db,
+        for (int i = offset; i < threads.size(); i++) {
+            Thread c = threads.get(i);
+            insertThreadToDatabase(db,
                     c.getId(),
+                    c.getText(),
+                    c.getMessageDate(),
+                    c.getUserPhoto(),
                     c.getUsername(),
-                    c.getTitle(),
-                    c.getProfilePhoto(),
-                    c.getTimestamp(),
+                    c.getPosterId(),
                     c.isRead() ? 1 : 0);
         }
     }
 
-    private void insertChatToDatabase(SQLiteDatabase db,
-                                      String id,
-                                      String username,
-                                      String text,
-                                      String image,
-                                      String timestamp,
-                                      int read) {
+    private void insertThreadToDatabase(SQLiteDatabase db,
+                                        String id,
+                                        String text,
+                                        String messageDate,
+                                        String userPhoto,
+                                        String username,
+                                        String posterId,
+                                        int read) {
         ContentValues values = new ContentValues();
-        values.put(ChatReaderContract.ChatEntry.COLUMN_NAME_USER_ID, id);
-        values.put(ChatReaderContract.ChatEntry.COLUMN_NAME_USERNAME, username);
-        values.put(ChatReaderContract.ChatEntry.COLUMN_NAME_TEXT, text);
-        values.put(ChatReaderContract.ChatEntry.COLUMN_NAME_IMAGE, image);
-        values.put(ChatReaderContract.ChatEntry.COLUMN_NAME_TIMESTAMP, timestamp);
-        values.put(ChatReaderContract.ChatEntry.COLUMN_NAME_READ, read);
+        values.put(ThreadReaderContract.ThreadEntry.COLUMN_NAME_THREAD_ID, id);
+        values.put(ThreadReaderContract.ThreadEntry.COLUMN_NAME_TEXT, text);
+        values.put(ThreadReaderContract.ThreadEntry.COLUMN_NAME_MESSAGE_DATE, messageDate);
+        values.put(ThreadReaderContract.ThreadEntry.COLUMN_NAME_USER_PHOTO, userPhoto);
+        values.put(ThreadReaderContract.ThreadEntry.COLUMN_NAME_USERNAME, username);
+        values.put(ThreadReaderContract.ThreadEntry.COLUMN_NAME_POSTER_ID, posterId);
+        values.put(ThreadReaderContract.ThreadEntry.COLUMN_NAME_READ, read);
 
         db.insert(
-                ChatReaderContract.ChatEntry.TABLE_NAME,
+                ThreadReaderContract.ThreadEntry.TABLE_NAME,
                 null,
                 values);
     }

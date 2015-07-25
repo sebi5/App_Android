@@ -15,48 +15,48 @@ import java.util.ArrayList;
 import sky.chin.penpal.R;
 import sky.chin.penpal.activities.MessageActivity;
 import sky.chin.penpal.configs.Url;
-import sky.chin.penpal.models.Chat;
+import sky.chin.penpal.models.Thread;
 import sky.chin.penpal.server.Server;
 import sky.chin.penpal.utils.TimestampUtils;
 
-public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
-    private ArrayList<Chat> mDataset;
+public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ViewHolder> {
+    private ArrayList<Thread> mDataset;
     private Activity mActivity;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        public NetworkImageView mProfilePhotos;
-        public TextView mTitle, mName, mTimestamp;
+        public NetworkImageView mUserPhoto;
+        public TextView mText, mUsername, mMessageDate;
         public ViewHolder(View v) {
             super(v);
-            mProfilePhotos = (NetworkImageView) v.findViewById(R.id.profilePhotos);
-            mTitle = (TextView) v.findViewById(R.id.title);
-            mName = (TextView) v.findViewById(R.id.name);
-            mTimestamp = (TextView) v.findViewById(R.id.timestamp);
+            mUserPhoto = (NetworkImageView) v.findViewById(R.id.userPhoto);
+            mText = (TextView) v.findViewById(R.id.text);
+            mUsername = (TextView) v.findViewById(R.id.username);
+            mMessageDate = (TextView) v.findViewById(R.id.messageDate);
         }
     }
 
-    public ChatAdapter(Activity activity) {
+    public ThreadAdapter(Activity activity) {
         mActivity = activity;
         mDataset = new ArrayList<>();
     }
 
-    public void clearChats() {
+    public void clearThreads() {
         mDataset.clear();
         notifyDataSetChanged();
     }
 
 
-    public void addChat(Chat chat) {
-        mDataset.add(chat);
-        notifyItemInserted(mDataset.indexOf(chat));
+    public void addThread(Thread thread) {
+        mDataset.add(thread);
+        notifyItemInserted(mDataset.indexOf(thread));
     }
 
     @Override
-    public ChatAdapter.ViewHolder onCreateViewHolder(ViewGroup parent,
+    public ThreadAdapter.ViewHolder onCreateViewHolder(ViewGroup parent,
                                                    int viewType) {
         // create a new view
         View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_chat, parent, false);
+                .inflate(R.layout.item_thread, parent, false);
         ViewHolder vh = new ViewHolder(v);
         return vh;
     }
@@ -64,13 +64,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     // Replace the contents of a view (invoked by the layout manager)
     @Override
     public void onBindViewHolder(ViewHolder holder, final int position) {
-        final Chat c = mDataset.get(position);
-        holder.mTitle.setText(c.getTitle());
-        holder.mName.setText(c.getUsername());
-        holder.mTimestamp.setText(TimestampUtils.convertTimestampToText(c.getTimestamp()));
+        final Thread c = mDataset.get(position);
+        holder.mText.setText(c.getText());
+        holder.mUsername.setText(c.getUsername());
+        holder.mMessageDate.setText(TimestampUtils.convertTimestampToText(c.getMessageDate()));
 
-        holder.mProfilePhotos.setDefaultImageResId(R.drawable.default_image);
-        holder.mProfilePhotos.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getProfilePhoto(),
+        holder.mUserPhoto.setDefaultImageResId(R.drawable.default_image);
+        holder.mUserPhoto.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getUserPhoto(),
                 Server.getInstance(mActivity).getImageLoader());
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {

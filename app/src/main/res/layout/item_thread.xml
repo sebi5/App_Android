@@ -9,7 +9,7 @@
     android:background="?android:selectableItemBackground">
 
     <com.android.volley.toolbox.NetworkImageView
-        android:id="@+id/profilePhotos"
+        android:id="@+id/userPhoto"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_marginRight="16dp"/>
@@ -25,7 +25,7 @@
             android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/name"
+                android:id="@+id/username"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="Bruce Sebastian Bruce Sebastian"
@@ -37,7 +37,7 @@
                 />
 
             <TextView
-                android:id="@+id/timestamp"
+                android:id="@+id/messageDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="Wed"
@@ -47,10 +47,10 @@
         </LinearLayout>
 
         <TextView
-            android:id="@+id/title"
+            android:id="@+id/text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            tools:text="This is very long title that needs 2 lines or more"
+            tools:text="This is very long text that needs 2 lines or more"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:singleLine="true"
             android:ellipsize="end"

@@ -19,12 +19,14 @@ public class AllMessagesRequest extends ServerRequest {
     private String userPassword;
     private String limit;
     private String skip;
+    private String lastId;
 
     private AllMessagesRequest(Builder builder) {
         setUserId(builder.userId);
         setUserPassword(builder.userPassword);
         setSkip(builder.skip);
         setLimit(builder.limit);
+        setLastId(builder.lastId);
     }
 
     public void setUserId(String userId) {
@@ -47,12 +49,18 @@ public class AllMessagesRequest extends ServerRequest {
         addParam("limit", this.limit);
     }
 
+    public void setLastId(String lastId) {
+        this.lastId = lastId;
+        addParam("last_id", this.lastId);
+    }
+
     public static class Builder {
 
         private String userId;
         private String userPassword;
         private String limit;
         private String skip;
+        private String lastId;
 
         public Builder userId(String value){
             this.userId = value;
@@ -71,6 +79,11 @@ public class AllMessagesRequest extends ServerRequest {
 
         public Builder skip(String value){
             this.skip = value;
+            return this;
+        }
+
+        public Builder lastId(String value){
+            this.lastId = value;
             return this;
         }
 
