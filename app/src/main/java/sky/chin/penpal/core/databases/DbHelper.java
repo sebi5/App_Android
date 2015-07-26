@@ -14,10 +14,11 @@ public class DbHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + MessageReaderContract.MessageEntry.TABLE_NAME + " (" +
                     MessageReaderContract.MessageEntry._ID + " INTEGER PRIMARY KEY," +
                     MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_ID + TEXT_TYPE + COMMA_SEP +
-                    MessageReaderContract.MessageEntry.COLUMN_NAME_USER_ID + TEXT_TYPE + COMMA_SEP +
+                    MessageReaderContract.MessageEntry.COLUMN_NAME_POSTER_ID + TEXT_TYPE + COMMA_SEP +
                     MessageReaderContract.MessageEntry.COLUMN_NAME_TEXT + TEXT_TYPE + COMMA_SEP +
-                    MessageReaderContract.MessageEntry.COLUMN_NAME_IMAGE + TEXT_TYPE + COMMA_SEP +
-                    MessageReaderContract.MessageEntry.COLUMN_NAME_TIMESTAMP + TEXT_TYPE +
+                    MessageReaderContract.MessageEntry.COLUMN_NAME_USER_PHOTO + TEXT_TYPE + COMMA_SEP +
+                    MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_DATE + TEXT_TYPE + COMMA_SEP +
+                    MessageReaderContract.MessageEntry.COLUMN_NAME_MASTER_ID + TEXT_TYPE +
             " )";
 
 
@@ -40,7 +41,7 @@ public class DbHelper extends SQLiteOpenHelper {
         "DROP TABLE IF EXISTS " + ThreadReaderContract.ThreadEntry.TABLE_NAME;
 
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 2;
     public static final String DATABASE_NAME = "InterLocalReader.db";
 
     public DbHelper(Context context) {

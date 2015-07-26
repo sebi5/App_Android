@@ -40,6 +40,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
 
     public void addMessages(ArrayList<Message> messages) {
         mDataset.addAll(0, messages);
+        notifyDataSetChanged();
     }
 
     public void clearMessages() {
@@ -63,7 +64,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     @Override
     public int getItemViewType(int position) {
         Message c = mDataset.get(position);
-        return c.getSenderId().equals(PrefUtils.getPrefsUserId(mContext)) ?
+        return c.getPosterId().equals(PrefUtils.getPrefsUserId(mContext)) ?
                 1/* Sent by me */:
                 0/* Sent by friend */;
     }
@@ -87,10 +88,10 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     public void onBindViewHolder(ViewHolder holder, final int position) {
         Message c = mDataset.get(position);
         holder.mText.setText(c.getText());
-        holder.mTimestamp.setText(TimestampUtils.convertTimestampToText(c.getTimestamp()));
+        holder.mTimestamp.setText(TimestampUtils.convertTimestampToText(c.getMessageDate()));
 
         holder.mProfilePhoto.setDefaultImageResId(R.drawable.default_image);
-        holder.mProfilePhoto.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getProfilePhoto(),
+        holder.mProfilePhoto.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getUserPhoto(),
                 Server.getInstance(mContext).getImageLoader());
     }
 

@@ -77,7 +77,7 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ViewHolder
             @Override
             public void onClick(View view) {
                 Intent message = new Intent(mActivity, MessageActivity.class);
-                message.putExtra(MessageActivity.INTENT_MESSAGE_ID, c.getId());
+                message.putExtra(MessageActivity.INTENT_MESSAGE_ID, c.getPosterId());
                 mActivity.startActivity(message);
             }
         });

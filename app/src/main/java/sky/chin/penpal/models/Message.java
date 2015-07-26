@@ -3,31 +3,36 @@ package sky.chin.penpal.models;
 public class Message {
 
     private String text;
-    private String timestamp;
-    private String senderId;
+    private String messageDate;
+    private String posterId;
+    private String userPhoto;
+    private String masterId;
 
-    private String profilePhoto;
-
-    public Message(String text, String timestamp, String senderId, String profilePhoto) {
+    public Message(String text, String messageDate, String posterId, String userPhoto, String masterId) {
         this.text = text;
-        this.timestamp = timestamp;
-        this.senderId = senderId;
-        this.profilePhoto = profilePhoto;
+        this.messageDate = messageDate;
+        this.posterId = posterId;
+        this.userPhoto = userPhoto;
+        this.masterId = masterId;
     }
 
     public String getText() {
         return text;
     }
 
-    public String getTimestamp() {
-        return timestamp;
+    public String getMessageDate() {
+        return messageDate;
     }
 
-    public String getSenderId() {
-        return senderId;
+    public String getPosterId() {
+        return posterId;
     }
 
-    public String getProfilePhoto() {
-        return profilePhoto;
+    public String getUserPhoto() {
+        return userPhoto;
+    }
+
+    public String getMasterId() {
+        return masterId;
     }
 }

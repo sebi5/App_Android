@@ -20,6 +20,7 @@ public class GetMessagesRequest extends ServerRequest {
     private String userPassword;
     private String limit;
     private String skip;
+    private String lastId;
 
     private GetMessagesRequest(Builder builder) {
         setId(builder.id);
@@ -27,6 +28,7 @@ public class GetMessagesRequest extends ServerRequest {
         setUserPassword(builder.userPassword);
         setSkip(builder.skip);
         setLimit(builder.limit);
+        setLastId(builder.lastId);
     }
 
     public void setId(String id) {
@@ -54,6 +56,11 @@ public class GetMessagesRequest extends ServerRequest {
         addParam("limit", this.limit);
     }
 
+    public void setLastId(String lastId) {
+        this.lastId = lastId;
+        addParam("last_id", this.lastId);
+    }
+
     public static class Builder {
 
         private String id;
@@ -61,6 +68,7 @@ public class GetMessagesRequest extends ServerRequest {
         private String userPassword;
         private String limit;
         private String skip;
+        private String lastId;
 
         public Builder id(String value){
             this.id = value;
@@ -84,6 +92,11 @@ public class GetMessagesRequest extends ServerRequest {
 
         public Builder skip(String value){
             this.skip = value;
+            return this;
+        }
+
+        public Builder lastId(String value){
+            this.lastId = value;
             return this;
         }
 

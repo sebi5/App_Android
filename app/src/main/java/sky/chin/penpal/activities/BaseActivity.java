@@ -42,8 +42,22 @@ public class BaseActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
         IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(networkStateReceiver, filter);
+    }
+
+    @Override
+    protected void onPause() {
+        unregisterReceiver(networkStateReceiver);
+
+        super.onPause();
     }
 
     public boolean isOffline() {

@@ -129,6 +129,7 @@ public class MessageActivity extends BaseActivity{
                         .userPassword(authManager.getUserPassword())
                         .limit(LIMIT+"")
                         .skip(mSkip+"")
+                        .lastId(" ")
                         .build(),
                 new ServerResponseListener() {
                     @Override
@@ -144,11 +145,12 @@ public class MessageActivity extends BaseActivity{
 
                             ArrayList<Message> messageArrayList = new ArrayList<Message>();
                             for (int k = 0; k < messages.length(); k++) {
-                                JSONArray item = messages.getJSONArray(k);
-                                messageArrayList.add(0, new Message(item.getString(1),
-                                        item.getInt(0)+"",
-                                        item.getString(2),
-                                        item.getString(3)));
+                                JSONObject item = messages.getJSONObject(k);
+                                messageArrayList.add(0, new Message(item.getString("text"),
+                                        item.getInt("message_date")+"",
+                                        item.getString("poster_id"),
+                                        item.getString("user_photo"),
+                                        item.getString("master_id")));
                             }
 
                             mAdapter.addMessages(messageArrayList);
@@ -188,10 +190,11 @@ public class MessageActivity extends BaseActivity{
 
         String[] projection = {
                 MessageReaderContract.MessageEntry._ID,
-                MessageReaderContract.MessageEntry.COLUMN_NAME_USER_ID,
                 MessageReaderContract.MessageEntry.COLUMN_NAME_TEXT,
-                MessageReaderContract.MessageEntry.COLUMN_NAME_TIMESTAMP,
-                MessageReaderContract.MessageEntry.COLUMN_NAME_IMAGE,
+                MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_DATE,
+                MessageReaderContract.MessageEntry.COLUMN_NAME_POSTER_ID,
+                MessageReaderContract.MessageEntry.COLUMN_NAME_USER_PHOTO,
+                MessageReaderContract.MessageEntry.COLUMN_NAME_MASTER_ID,
         };
 
         String selection = MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_ID + " = ?";
@@ -209,10 +212,11 @@ public class MessageActivity extends BaseActivity{
 
         if (c.moveToFirst()) {
             do {
-                mAdapter.addMessage(new Message(c.getString(2),
+                mAdapter.addMessage(new Message(c.getString(1),
+                        c.getString(2),
                         c.getString(3),
-                        c.getString(1),
-                        c.getString(4)));
+                        c.getString(4),
+                        c.getString(5)));
             } while (c.moveToNext());
         }
 
@@ -234,17 +238,28 @@ public class MessageActivity extends BaseActivity{
 
         for (int i = offset; i < messages.size(); i++) {
             Message m = messages.get(i);
-            insertMessageToDatabase(db, m.getSenderId(), m.getText(), m.getTimestamp(), m.getProfilePhoto());
+            insertMessageToDatabase(db,
+                    m.getPosterId(),
+                    m.getText(),
+                    m.getMessageDate(),
+                    m.getUserPhoto(),
+                    m.getMasterId());
         }
     }
 
-    private void insertMessageToDatabase(SQLiteDatabase db, String id, String text, String timestamp, String image) {
+    private void insertMessageToDatabase(SQLiteDatabase db,
+                                         String id,
+                                         String text,
+                                         String messageDate,
+                                         String userPhoto,
+                                         String masterId) {
         ContentValues values = new ContentValues();
         values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_ID, mMessageId);
-        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_USER_ID, id);
+        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_POSTER_ID, id);
         values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_TEXT, text);
-        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_TIMESTAMP, timestamp);
-        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_IMAGE, image);
+        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_DATE, messageDate);
+        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_USER_PHOTO, userPhoto);
+        values.put(MessageReaderContract.MessageEntry.COLUMN_NAME_MASTER_ID, masterId);
 
         db.insert(
                 MessageReaderContract.MessageEntry.TABLE_NAME,
@@ -255,7 +270,7 @@ public class MessageActivity extends BaseActivity{
     public void send(String text, String id, String userId, String userPassword) {
 
         // TODO add own profile picture
-        final Message newMessage = new Message(text, TimestampUtils.generateTimestamp(), userId, "");
+        final Message newMessage = new Message(text, TimestampUtils.generateTimestamp(), userId, "", "");
         mAdapter.addMessage(newMessage);
 
 //        if (ConnectivityUtils.isConnected(this)) {
