@@ -90,7 +90,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         holder.mText.setText(c.getText());
         holder.mTimestamp.setText(TimestampUtils.convertTimestampToText(c.getMessageDate()));
 
-        holder.mProfilePhoto.setDefaultImageResId(R.drawable.default_image);
+        holder.mProfilePhoto.setDefaultImageResId(R.drawable.default_img);
         holder.mProfilePhoto.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getUserPhoto(),
                 Server.getInstance(mContext).getImageLoader());
     }

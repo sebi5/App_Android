@@ -69,7 +69,7 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ViewHolder
         holder.mUsername.setText(c.getUsername());
         holder.mMessageDate.setText(TimestampUtils.convertTimestampToText(c.getMessageDate()));
 
-        holder.mUserPhoto.setDefaultImageResId(R.drawable.default_image);
+        holder.mUserPhoto.setDefaultImageResId(R.drawable.default_img);
         holder.mUserPhoto.setImageUrl(Url.PROFILE_PHOTOS + "/" + c.getUserPhoto(),
                 Server.getInstance(mActivity).getImageLoader());
 
