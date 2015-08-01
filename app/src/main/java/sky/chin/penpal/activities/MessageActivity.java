@@ -285,7 +285,10 @@ public class MessageActivity extends BaseActivity{
                                     hasNewMessage = true;
                             }
 
-                            mAdapter.addNewMessages(messageArrayList);
+                            if (messageArrayList.size() > 0) {
+                                mAdapter.addNewMessages(messageArrayList);
+                                saveRecentMessages(mAdapter.getMessages());
+                            }
 
                             if (hasNewMessage)
                                 ToastUtils.show(MessageActivity.this,
