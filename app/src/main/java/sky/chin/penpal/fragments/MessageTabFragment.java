@@ -22,8 +22,8 @@ import java.util.ArrayList;
 import sky.chin.penpal.R;
 import sky.chin.penpal.activities.BaseActivity;
 import sky.chin.penpal.adapters.ThreadAdapter;
-import sky.chin.penpal.core.databases.ThreadReaderContract;
 import sky.chin.penpal.core.databases.DbHelper;
+import sky.chin.penpal.core.databases.ThreadReaderContract;
 import sky.chin.penpal.models.Thread;
 import sky.chin.penpal.server.Server;
 import sky.chin.penpal.server.interfaces.ServerResponseListener;
@@ -99,10 +99,11 @@ public class MessageTabFragment extends Fragment{
         return v;
     }
 
-    final private int LIMIT = 10;
+    private int mLimit = 10;
     private int mSkip = 0;
 
     private void resetCounter() {
+        mLimit = 10;
         mSkip = 0;
     }
 
@@ -119,7 +120,7 @@ public class MessageTabFragment extends Fragment{
                 new AllMessagesRequest.Builder()
                         .userId(authManager.getUserId())
                         .userPassword(authManager.getUserPassword())
-                        .limit(LIMIT+"")
+                        .limit(mLimit +"")
                         .skip(mSkip+"")
                         .lastId("1") // Dummy value
                         .build(),
@@ -152,10 +153,10 @@ public class MessageTabFragment extends Fragment{
                             saveRecentThreads(threadArrayList);
 
                             // update skip
-                            mSkip += message.length();
+                            mLimit += message.length();
 
                             // Remove OnScrollListener if no next page
-                            if (message.length() < LIMIT)
+                            if (message.length() < mLimit)
                                 mRecyclerView.removeOnScrollListener(mRecyclerOnScrollListener);
 
                         } catch (JSONException e) {

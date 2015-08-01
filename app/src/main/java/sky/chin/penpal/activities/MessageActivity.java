@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -28,17 +29,20 @@ import sky.chin.penpal.server.interfaces.ServerResponseListener;
 import sky.chin.penpal.server.requests.GetMessagesRequest;
 import sky.chin.penpal.server.requests.SendMessageRequest;
 import sky.chin.penpal.utils.AuthManager;
-import sky.chin.penpal.utils.TimestampUtils;
+import sky.chin.penpal.utils.PrefUtils;
+import sky.chin.penpal.utils.ToastUtils;
 import sky.chin.penpal.widgets.ToplessRecyclerOnScrollListener;
 
 public class MessageActivity extends BaseActivity{
 
-    private static final String LOG = MessageActivity.class.getSimpleName();
+    private static final String TAG = MessageActivity.class.getSimpleName();
 
     final private int MAX_RECENT_MESSAGES = 20;
 
     final private int LIMIT = 10;
     private int mSkip = 0;
+    private boolean isDatabaseDataLoaded = false;
+    private boolean isFetchingOldMessage = false;
 
     private RecyclerView mRecyclerView;
     private MessageAdapter mAdapter;
@@ -57,9 +61,21 @@ public class MessageActivity extends BaseActivity{
             new SwipeRefreshLayout.OnRefreshListener() {
                 @Override
                 public void onRefresh() {
-                    getMessagesFromServer();
+                    if (!isDatabaseDataLoaded) {
+                        Log.d(TAG, "SwipeRefresh called fetchOldMessages");
+                        fetchOldMessages();
+                    }
                 }
             };
+
+    final private int FETCHING_INTERVAL = 20000;
+    private Handler mFetchNewMessageHandler = new Handler();
+    private Runnable mFetchNewMessageRunnable = new Runnable() {
+        @Override
+        public void run() {
+            fetchNewMessages();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,10 +99,10 @@ public class MessageActivity extends BaseActivity{
         mRecyclerOnScrollListener = new ToplessRecyclerOnScrollListener(mLayoutManager) {
             @Override
             public void onLoadMore() {
-                getMessagesFromServer();
+                Log.d(TAG, "LoadMore called fetchOldMessages");
+                fetchOldMessages();
             }
         };
-        mRecyclerView.addOnScrollListener(mRecyclerOnScrollListener);
 
         mAdapter = new MessageAdapter(this);
         mRecyclerView.setAdapter(mAdapter);
@@ -101,34 +117,143 @@ public class MessageActivity extends BaseActivity{
                 if ("".equals(text)) return;
 
                 send(text, mMessageId, authManager.getUserId(), authManager.getUserPassword());
-                messageBox.setText("");
             }
         });
 
         mSwipeRefreshLayout.setOnRefreshListener(mOnRefreshListener);
-        if (isOffline()) {
-            getMessagesFromDatabase();
-        } else
-            getMessagesFromServer();
+        prefetch();
     }
 
-    private void getMessagesFromServer() {
-        mSwipeRefreshLayout.post(new Runnable() {
-            @Override
-            public void run() {
-                mSwipeRefreshLayout.setRefreshing(true);
-            }
-        });
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-        mSwipeRefreshLayout.setEnabled(false);
+        // Start fetching new message
+        startFetchNewMessage();
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        mFetchNewMessageHandler.removeCallbacks(mFetchNewMessageRunnable);
+    }
+
+    private void prefetch() {
+        getMessagesFromDatabase();
+
+        if (!isOffline()) {
+            Log.d(TAG, "prefetch called fetchOldMessages");
+            fetchOldMessages();
+        }
+    }
+
+    private void scrollToMostRecentMessage() {
+        mRecyclerView.scrollToPosition(mAdapter.getItemCount() - 1);
+    }
+
+    private void fetchOldMessages() {
+        if (!isFetchingOldMessage) {
+            Log.d(TAG, "called fetchOldMessages");
+            isFetchingOldMessage = true;
+
+            mSwipeRefreshLayout.post(new Runnable() {
+                @Override
+                public void run() {
+                    mSwipeRefreshLayout.setRefreshing(true);
+                }
+            });
+
+            mSwipeRefreshLayout.setEnabled(false);
+
+            Server.getInstance(this).sendRequest(
+                    new GetMessagesRequest.Builder()
+                            .id(mMessageId)
+                            .userId(authManager.getUserId())
+                            .userPassword(authManager.getUserPassword())
+                            .limit(LIMIT + "")
+                            .skip(mSkip + "")
+                            .lastId(" ")
+                            .build(),
+                    new ServerResponseListener() {
+                        @Override
+                        public void onSuccess(JSONObject data) {
+                            try {
+                                JSONArray messages = data.getJSONArray("messages")
+                                        .getJSONArray(0);
+
+                                Log.d(TAG, data.toString());
+
+                                if (isDatabaseDataLoaded) {
+                                    isDatabaseDataLoaded = false;
+                                    mAdapter.clearMessages();
+                                }
+
+                                ArrayList<Message> messageArrayList = new ArrayList<Message>();
+                                for (int k = 0; k < messages.length(); k++) {
+                                    JSONObject item = messages.getJSONObject(k);
+                                    messageArrayList.add(0, new Message(item.getString("message_id"),
+                                            item.getString("text"),
+                                            item.getInt("message_date") + "",
+                                            item.getString("poster_id"),
+                                            item.getString("user_photo"),
+                                            item.getString("master_id")));
+                                }
+
+                                mAdapter.addOldMessages(messageArrayList);
+
+                                // Scroll to most recent message when first load and save most recent messages
+                                if (mSkip == 0) {
+                                    saveRecentMessages(mAdapter.getMessages());
+                                    scrollToMostRecentMessage();
+                                    mRecyclerView.addOnScrollListener(mRecyclerOnScrollListener);
+                                }
+
+                                // update skip
+                                mSkip += messageArrayList.size();
+
+                                // Remove OnScrollListener if no next page
+                                if (messageArrayList.size() < LIMIT) {
+                                    Log.d(TAG, "Remove OnScrollListener");
+                                    mRecyclerView.removeOnScrollListener(mRecyclerOnScrollListener);
+                                }
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+
+                            mSwipeRefreshLayout.setRefreshing(false);
+                            isFetchingOldMessage = false;
+                        }
+
+                        @Override
+                        public void onError(String content) {
+                            Log.d(TAG, "onError " + content);
+                            mSwipeRefreshLayout.setRefreshing(false);
+                            mSwipeRefreshLayout.setEnabled(true);
+                            isFetchingOldMessage = false;
+                        }
+                    }
+            );
+        }
+    }
+
+    private void startFetchNewMessage() {
+        mFetchNewMessageHandler.post(mFetchNewMessageRunnable);
+    }
+
+    private void scheduleNextFetchNewMessage() {
+        mFetchNewMessageHandler.postDelayed(mFetchNewMessageRunnable, FETCHING_INTERVAL);
+    }
+
+    private void fetchNewMessages() {
         Server.getInstance(this).sendRequest(
                 new GetMessagesRequest.Builder()
                         .id(mMessageId)
                         .userId(authManager.getUserId())
                         .userPassword(authManager.getUserPassword())
-                        .limit(LIMIT+"")
-                        .skip(mSkip+"")
+                        .limit(LIMIT + "")
+                        .skip("0")
                         .lastId(" ")
                         .build(),
                 new ServerResponseListener() {
@@ -138,47 +263,44 @@ public class MessageActivity extends BaseActivity{
                             JSONArray messages = data.getJSONArray("messages")
                                     .getJSONArray(0);
 
-                            Log.d(LOG, data.toString());
-
-                            if (mSkip == 0)
-                                mAdapter.clearMessages();
+                            boolean hasNewMessage = false;
+                            String userId = PrefUtils.getPrefsUserId(MessageActivity.this);
+                            String messageId = mAdapter.getMostRecentMessageId();
 
                             ArrayList<Message> messageArrayList = new ArrayList<Message>();
                             for (int k = 0; k < messages.length(); k++) {
                                 JSONObject item = messages.getJSONObject(k);
-                                messageArrayList.add(0, new Message(item.getString("text"),
-                                        item.getInt("message_date")+"",
+
+                                if (messageId.equals(item.getString("message_id")))
+                                    break;
+
+                                messageArrayList.add(0, new Message(item.getString("message_id"),
+                                        item.getString("text"),
+                                        item.getInt("message_date") + "",
                                         item.getString("poster_id"),
                                         item.getString("user_photo"),
                                         item.getString("master_id")));
+
+                                if (!hasNewMessage && !userId.equals(item.getString("poster_id")))
+                                    hasNewMessage = true;
                             }
 
-                            mAdapter.addMessages(messageArrayList);
+                            mAdapter.addNewMessages(messageArrayList);
 
-                            // Scroll to most recent message when first load and save most recent messages
-                            if (mSkip == 0) {
-                                saveRecentMessages(mAdapter.getMessages());
-                                mRecyclerView.scrollToPosition(messageArrayList.size() - 1);
-                            }
-
-                            // update skip
-                            mSkip += messageArrayList.size();
-
-                            // Remove OnScrollListener if no next page
-                            if (messageArrayList.size() < LIMIT)
-                                mRecyclerView.removeOnScrollListener(mRecyclerOnScrollListener);
+                            if (hasNewMessage)
+                                ToastUtils.show(MessageActivity.this,
+                                        getResources().getString(R.string.you_have_new_message));
 
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
 
-                        mSwipeRefreshLayout.setRefreshing(false);
+                        scheduleNextFetchNewMessage();
                     }
 
                     @Override
                     public void onError(String content) {
-                        mSwipeRefreshLayout.setRefreshing(false);
-                        mSwipeRefreshLayout.setEnabled(true);
+                        Log.d(TAG, "onError " + content);
                     }
                 }
         );
@@ -190,6 +312,7 @@ public class MessageActivity extends BaseActivity{
 
         String[] projection = {
                 MessageReaderContract.MessageEntry._ID,
+                MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_ID,
                 MessageReaderContract.MessageEntry.COLUMN_NAME_TEXT,
                 MessageReaderContract.MessageEntry.COLUMN_NAME_MESSAGE_DATE,
                 MessageReaderContract.MessageEntry.COLUMN_NAME_POSTER_ID,
@@ -216,14 +339,17 @@ public class MessageActivity extends BaseActivity{
                         c.getString(2),
                         c.getString(3),
                         c.getString(4),
-                        c.getString(5)));
+                        c.getString(5),
+                        c.getString(6)));
             } while (c.moveToNext());
         }
 
         mAdapter.notifyDataSetChanged();
 
         // Scroll to most recent message
-        mRecyclerView.scrollToPosition(mAdapter.getMessages().size()-1);
+        scrollToMostRecentMessage();
+
+        isDatabaseDataLoaded = true;
     }
 
     private void saveRecentMessages(ArrayList<Message> messages) {
@@ -267,32 +393,46 @@ public class MessageActivity extends BaseActivity{
                 values);
     }
 
+    private void updateUIOnSendingMessage() {
+        enableMessageBox(false);
+        scrollToMostRecentMessage();
+    }
+
+    private void updateUIOnMessageSent() {
+        messageBox.setText("");
+        enableMessageBox(true);
+    }
+
+    private void enableMessageBox(boolean enabled) {
+        messageBox.setEnabled(enabled);
+        sendButton.setEnabled(enabled);
+    }
+
     public void send(String text, String id, String userId, String userPassword) {
+        updateUIOnSendingMessage();
 
-        // TODO add own profile picture
-        final Message newMessage = new Message(text, TimestampUtils.generateTimestamp(), userId, "", "");
-        mAdapter.addMessage(newMessage);
+        Server.getInstance(this).sendRequest(
+                new SendMessageRequest.Builder()
+                        .id(id)
+                        .userId(userId)
+                        .userPassword(userPassword)
+                        .message(text)
+                        .build(),
+                new ServerResponseListener() {
+                    @Override
+                    public void onSuccess(JSONObject data) {
+                        // TODO do something?
+                        ToastUtils.show(MessageActivity.this, getResources().getString(R.string.sent));
 
-//        if (ConnectivityUtils.isConnected(this)) {
-            Server.getInstance(this).sendRequest(
-                    new SendMessageRequest.Builder()
-                            .id(id)
-                            .userId(userId)
-                            .userPassword(userPassword)
-                            .message(text)
-                            .build(),
-                    new ServerResponseListener() {
-                        @Override
-                        public void onSuccess(JSONObject data) {
-                            // TODO do something?
-                        }
-
-                        @Override
-                        public void onError(String content) {
-                            mAdapter.removeMessage(newMessage);
-                        }
+                        updateUIOnMessageSent();
                     }
-            );
-//        }
+
+                    @Override
+                    public void onError(String content) {
+                        ToastUtils.show(MessageActivity.this, content);
+                        updateUIOnMessageSent();
+                    }
+                }
+        );
     }
 }

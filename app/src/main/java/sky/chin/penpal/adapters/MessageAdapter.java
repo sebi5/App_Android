@@ -38,8 +38,13 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         mDataset = new ArrayList<>();
     }
 
-    public void addMessages(ArrayList<Message> messages) {
+    public void addOldMessages(ArrayList<Message> messages) {
         mDataset.addAll(0, messages);
+        notifyDataSetChanged();
+    }
+
+    public void addNewMessages(ArrayList<Message> messages) {
+        mDataset.addAll(messages);
         notifyDataSetChanged();
     }
 
@@ -59,6 +64,11 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
 
     public ArrayList<Message> getMessages() {
         return mDataset;
+    }
+
+    public String getMostRecentMessageId() {
+        if (mDataset.size() < 1) return "";
+        return mDataset.get(mDataset.size()-1).getId();
     }
 
     @Override
